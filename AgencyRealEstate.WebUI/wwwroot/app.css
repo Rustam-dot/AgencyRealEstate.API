@@ -1,209 +1,636 @@
-/* ========== ОБЩИЕ ========== */
+/* Базовые настройки */
 body {
-    background-color: #2c2c2c;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #e0e0e0;
+    background-color: #212121;
+    color: #ffffff;
+    font-family: 'Inter', sans-serif;
     margin: 0;
-    padding: 0;
 }
 
-a {
-    color: #6295ca;
-    text-decoration: none;
+/* --- НАВИГАЦИЯ --- */
+.nav-bar {
+    background: rgba(30, 30, 30, 0.8);
+    backdrop-filter: blur(10px);
+    height: 70px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-    a:hover {
-        color: #8ab3d7;
+.nav-content {
+    width: 90%;
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+/* ВЫПАДАЮЩЕЕ МЕНЮ (СВЕРХУ ВНИЗ) */
+.dropdown-container {
+    position: relative;
+    padding: 10px 0;
+}
+
+.nav-item {
+    cursor: pointer;
+    color: #ccc;
+    font-weight: 500;
+    transition: 0.3s;
+}
+
+    .nav-item:hover {
+        color: #fff;
     }
 
-/* ========== КНОПКА ГАМБУРГЕР ========== */
-.menu-trigger {
-    position: fixed;
-    top: 30px;
-    left: 30px; 
-    width: 42px;
-    height: 42px;
-    cursor: pointer;
-    z-index: 1000;
-}
-
-.menu-trigger-bar {
-    display: block;
-    width: 100%;
-    height: 4px;
-    background-color: #fff;
-    margin-bottom: 6px;
-    transition: all 0.3s ease;
-}
-
-/* ========== ОВЕРЛЕЙ МЕНЮ ========== */
-.menu-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.92);
-    z-index: 999;
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #2d2d2d;
+    min-width: 220px;
+    border-radius: 15px;
+    padding: 10px 0;
+    list-style: none;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
     opacity: 0;
     visibility: hidden;
-    pointer-events: none; /* оставляем, скрытое состояние */
+    transform: translateY(-10px); /* Начальная позиция выше */
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
 
-    .menu-overlay.active {
-        pointer-events: auto; /* 👈 теперь клики работают */
+.dropdown-container:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(10px); /* Плавно едет вниз */
+}
+
+.dropdown-menu li a {
+    display: block;
+    padding: 12px 20px;
+    color: #eee;
+    text-decoration: none;
+    font-size: 0.95rem;
+}
+
+    .dropdown-menu li a:hover {
+        background: #3d3d3d;
+        color: #fff;
     }
 
-.menu-container {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 320px;
-    height: 100%;
-    background: #1e1e1e;
-    transform: translateX(-100%);
-    padding: 100px 40px;
-    box-shadow: 5px 0 20px rgba(0,0,0,0.3);
+.divider {
+    height: 1px;
+    background: rgba(255,255,255,0.05);
+    margin: 5px 0;
 }
 
-.menu {
-    list-style: none;
-    padding: 0;
+/* --- ГЛАВНАЯ СТРАНИЦА И КАРТОЧКИ --- */
+.page-wrapper {
+    max-width: 1200px;
+    margin: 40px auto;
+    padding: 0 20px;
 }
 
-    .menu li {
-        margin-bottom: 25px;
-    }
-
-        .menu li a {
-            color: #cccccc;
-            font-size: 1.4rem;
-            font-weight: 500;
-            transition: color 0.2s, padding-left 0.2s;
-            display: block;
-            padding: 5px 0;
-        }
-
-            .menu li a:hover {
-                color: #ffffff;
-                padding-left: 10px;
-            }
-
-/* ========== КАРТОЧКИ ОБЪЕКТОВ ========== */
-.card {
-    background-color: #ffffff;
-    border-radius: 12px;
-    box-shadow: 0 6px 20px rgba(0,0,0,0.4);
-    transition: transform 0.25s, box-shadow 0.25s;
-    color: #333;
-}
-
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 30px rgba(0,0,0,0.5);
-    }
-
-.card-img-top {
-    height: 200px;
-    object-fit: cover;
-}
-
-.card-body {
-    padding: 1.2rem;
-}
-
-.card-title {
+.hero-header h1 {
+    font-size: 2rem;
     font-weight: 700;
-    color: #1e3c72;
+    margin-bottom: 5px;
 }
 
-.card-text {
-    color: #555;
+.hero-header p {
+    color: #888;
+    font-size: 1rem;
+    margin-bottom: 40px;
 }
 
-/* ========== КНОПКИ ========== */
-.btn {
-    border-radius: 8px;
-    padding: 10px 24px;
+.property-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 30px;
+}
+
+.luxury-card {
+    background: #2d2d2d;
+    border-radius: 30px; /* Сильное закругление как на скрине */
+    overflow: hidden;
+    transition: 0.3s ease;
+    border: 1px solid rgba(255,255,255,0.03);
+}
+
+    .luxury-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+    }
+
+.card-image-box {
+    height: 230px;
+    width: 100%;
+    overflow: hidden;
+}
+
+    .card-image-box img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: 0.5s;
+    }
+
+.luxury-card:hover .card-image-box img {
+    transform: scale(1.05);
+}
+
+.card-body-luxury {
+    padding: 30px;
+}
+
+.card-address-title {
+    font-size: 1.25rem;
     font-weight: 600;
-    transition: all 0.2s;
-    border: none;
+    margin: 0 0 5px 0;
 }
 
-.btn-primary {
-    background-color: #6295ca;
+.card-location-subtitle {
+    color: #777;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.card-price-tag {
+    font-size: 1.6rem;
+    font-weight: 700;
+    margin-bottom: 10px;
+}
+
+.card-features-row {
+    display: flex;
+    gap: 15px;
+    color: #999;
+    font-size: 0.85rem;
+    margin-bottom: 25px;
+}
+
+.card-btn-pill {
+    display: block;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 14px;
+    border-radius: 50px; /* Кнопка-пилюля */
+    color: #fff;
+    font-weight: 600;
+    transition: 0.3s;
+}
+
+    .card-btn-pill:hover {
+        background: #fff;
+        color: #000;
+    }
+
+/* --- СТИЛЬ ФОРМ (ВХОД / РЕГИСТРАЦИЯ) --- */
+.input-solid {
+    background: #f0f2f5 !important; /* Светлые инпуты как на скрине */
+    border: none !important;
+    border-radius: 50px !important;
+    padding: 16px 25px !important;
+    margin-bottom: 15px;
+    color: #333 !important;
+    width: 100%;
+}
+
+.form-1 {
+    background: rgba(45, 45, 45, 0.7);
+    backdrop-filter: blur(15px);
+    border-radius: 40px; /* Закругление формы */
+    padding: 50px;
+    box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+}
+
+.submit-pill {
+    background: transparent;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 50px;
+    padding: 10px 30px;
+    color: #fff;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+    .submit-pill:hover {
+        background: rgba(255,255,255,0.1);
+    }
+/* Бейджи статусов поверх фото */
+.status-badge-overlay {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    padding: 8px 16px;
+    border-radius: 50px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    backdrop-filter: blur(10px);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+    .status-badge-overlay.available {
+        color: #4ade80;
+    }
+
+    .status-badge-overlay.reserved {
+        color: #fbbf24;
+    }
+
+/* Страница объекта */
+.property-detail-header {
+    margin-bottom: 40px;
+}
+
+.back-link {
+    color: #888;
+    text-decoration: none;
+    margin-bottom: 15px;
+    display: block;
+}
+
+.price-hero {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #fff;
+    margin-top: 10px;
+}
+
+.featured-image {
+    width: 100%;
+    height: 500px;
+    object-fit: cover;
+    border-radius: 40px;
+    margin-bottom: 15px;
+}
+
+.thumbnails-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 15px;
+}
+
+.thumb {
+    width: 100%;
+    height: 100px;
+    object-fit: cover;
+    border-radius: 15px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+    .thumb:hover {
+        opacity: 0.7;
+    }
+
+.specs-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+    background: #2d2d2d;
+    padding: 30px;
+    border-radius: 30px;
+    margin-top: 30px;
+}
+
+.spec-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.spec-label {
+    color: #777;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+.spec-value {
+    color: #fff;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.sidebar-booking {
+    position: sticky;
+    top: 100px;
+}
+
+.booking-card {
+    background: #2d2d2d;
+    padding: 35px;
+    border-radius: 40px;
+    border: 1px solid rgba(255,255,255,0.05);
+}
+
+    .booking-card h4 {
+        margin-bottom: 25px;
+        font-weight: 700;
+    }
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+    .form-group label {
+        display: block;
+        margin-bottom: 8px;
+        color: #aaa;
+        font-size: 0.9rem;
+        margin-left: 15px;
+    }
+/* Стилизация пикеров MudBlazor под стиль Elite Estates */
+.custom-picker {
+    --mud-palette-surface: #2d2d2d; /* Темный фон окна */
+    --mud-palette-text-primary: #ffffff;
+    --mud-palette-primary: #ffffff; /* Цвет активных элементов */
+    background: #f4f4f4; /* Светлая подложка как у ваших инпутов */
+    border-radius: 50px !important;
+    padding: 5px 20px !important;
+}
+
+    .custom-picker .mud-input-underline:before,
+    .custom-picker .mud-input-underline:after {
+        display: none; /* Убираем стандартную полоску снизу */
+    }
+
+    .custom-picker input {
+        color: #333 !important; /* Текст внутри инпута темный */
+        font-weight: 500;
+    }
+
+/* Окно календаря (диалог) */
+.mud-picker-dialog .mud-dialog-title {
+    background: #1a1a1a;
     color: white;
 }
 
-    .btn-primary:hover {
-        background-color: #4f7aa8;
-    }
-
-.btn-success {
-    background-color: #27ae60;
+.mud-picker-calendar-container {
+    background: #2d2d2d !important;
+    color: white !important;
 }
 
-.btn-danger {
-    background-color: #d1253b;
+.mud-day {
+    color: white !important;
 }
 
-/* ========== ФОРМЫ ========== */
-.form-control {
-    background-color: #3a3a3a;
-    border: 1px solid #555;
+.mud-selected {
+    background-color: rgba(255,255,255,0.2) !important;
+}
+
+/* Блокировка прошедших дат визуально */
+.mud-day-disabled {
+    opacity: 0.2;
+}
+/* Блок цены и улицы под фото */
+.price-action-bar {
+    display: flex;
+    align-items: center;
+    gap: 30px;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 25px;
+    border-radius: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.price-tag-large {
+    font-size: 2.8rem;
+    font-weight: 900;
     color: #fff;
-    border-radius: 8px;
-    padding: 10px 14px;
+    white-space: nowrap;
+    letter-spacing: -1px;
 }
 
-    .form-control:focus {
-        border-color: #6295ca;
-        box-shadow: 0 0 0 0.2rem rgba(98, 149, 202, 0.25);
+.price-tag-large .currency {
+    color: #f39c12; /* Золотистый акцент для валюты */
+    margin-left: 5px;
+}
+
+.property-main-info .street-title {
+    font-size: 1.5rem;
+    margin: 0;
+    color: #e0e0e0;
+    font-weight: 500;
+}
+
+.badge-type-alt {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: #888;
+    display: block;
+    margin-bottom: 5px;
+}
+
+
+
+@media (max-width: 768px) {
+    .price-action-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 15px;
+    }
+    .price-tag-large {
+        font-size: 2rem;
+    }
+}
+/* Контейнер для формы */
+.booking-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Две колонки одинаковой ширины */
+    gap: 30px;
+}
+
+/* Стилизация MudBlazor Пикеров */
+.elite-picker-static {
+    background: #f0f2f5 !important;
+    border-radius: 20px !important;
+    overflow: hidden;
+    color: #333 !important;
+}
+
+    /* Делаем статичный календарь компактнее */
+    .elite-picker-static .mud-picker-calendar-container {
+        background: #f0f2f5 !important;
+        color: #333 !important;
     }
 
-/* ========== АДАПТИВНОСТЬ ========== */
-@media (max-width: 768px) {
-    .menu-container {
+    .elite-picker-static .mud-day {
+        color: #333 !important;
+    }
+
+    .elite-picker-static .mud-selected {
+        background-color: #212121 !important;
+        color: #fff !important;
+    }
+
+/* Инпут для времени */
+.elite-picker-input {
+    background: #f0f2f5 !important;
+    border-radius: 50px !important;
+    border: none !important;
+}
+
+    .elite-picker-input input {
+        padding: 12px 20px !important;
+        color: #333 !important;
+    }
+
+/* Если экран маленький — возвращаем в одну колонку */
+@media (max-width: 992px) {
+    .booking-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .col-lg-4 {
         width: 100%;
     }
 }
-/* ========== Сетка карточек (ограничение ширины) ========== */
-.properties-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 24px;
-    margin: 20px 0;
-}
 
-/* Чтобы старые row/col тоже нормально выглядели */
-.row {
+/* Настройка лейблов */
+.custom-label {
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #888;
+    margin-left: 10px;
+    margin-bottom: 5px;
+    display: block;
+    text-transform: uppercase;
+}
+/* --- ПРЕМИУМ БАР ЦЕНЫ --- */
+.price-action-bar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 20px;
+    justify-content: space-between;
+    align-items: center;
+    background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.01) 100%);
+    padding: 25px 35px;
+    border-radius: 30px;
+    border-left: 4px solid #f39c12; /* Золотой акцент */
+    margin-bottom: 30px;
+    backdrop-filter: blur(5px);
 }
 
-.col-md-4, .col-md-6, .col-lg-4 {
-    flex: 0 0 auto;
-    width: 300px;
-    max-width: 100%;
+.price-tag-large {
+    font-size: 2.8rem;
+    font-weight: 900;
+    color: #fff;
+    line-height: 1;
 }
 
-/* Кликабельные карточки */
-.card[style*="cursor:pointer"] {
-    cursor: pointer;
+    .price-tag-large .currency {
+        color: #f39c12;
+        font-weight: 300;
+    }
+
+/* Статус с анимацией пульсации */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(74, 222, 128, 0.1);
+    padding: 10px 20px;
+    border-radius: 50px;
+    color: #4ade80;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
 
-/* Небольшой отступ для главной страницы */
-.hero h1 {
-    font-size: 2.5rem;
+.pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #4ade80;
+    border-radius: 50%;
+    box-shadow: 0 0 0 rgba(74, 222, 128, 0.4);
+    animation: pulse-green 2s infinite;
 }
 
-/* Адаптация карточек под тёмный фон */
-.card {
-    background-color: #2a2a2a; /* можно оставить #ffffff, если хотите */
-    color: #e0e0e0;
+@keyframes pulse-green {
+    0% {
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(74, 222, 128, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(74, 222, 128, 0);
+    }
 }
 
-.card-title {
-    color: #6295ca;
+/* --- БЛОК ОПИСАНИЯ С АДРЕСОМ --- */
+.description-section {
+    background: rgba(255, 255, 255, 0.02);
+    padding: 40px;
+    border-radius: 35px;
+    margin-bottom: 30px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.address-context {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    color: #f39c12; /* Цвет иконки */
+}
+
+    .address-context i {
+        font-size: 1.5rem;
+    }
+
+.street-title-main {
+    font-size: 2rem;
+    font-weight: 700;
+    margin: 0;
+    color: #ffffff;
+    letter-spacing: -0.5px;
+}
+
+.premium-divider {
+    height: 2px;
+    width: 50px;
+    background: #f39c12;
+    margin: 25px 0;
+    border-radius: 2px;
+}
+
+.section-subtitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    color: #888;
+    margin-bottom: 15px;
+}
+
+.description-text {
+    line-height: 1.8;
+    color: #cccccc;
+    font-size: 1.1rem;
+    margin: 0;
+}
+
+/* Адаптивность для мобильных */
+@media (max-width: 768px) {
+    .price-action-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 20px;
+    }
+
+    .price-tag-large {
+        font-size: 2.2rem;
+    }
 }

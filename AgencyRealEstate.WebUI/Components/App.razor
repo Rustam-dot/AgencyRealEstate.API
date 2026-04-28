@@ -4,8 +4,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <script src="https://kit.fontawesome.com/628c8d2499.js" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="/" />
@@ -15,39 +13,14 @@
     <link rel="stylesheet" href="app.css" />
     <link rel="stylesheet" href="AgencyRealEstate.WebUI.styles.css" />
     <link rel="icon" type="image/png" href="favicon.png" />
-    <script src="js/menu.js"></script>
-    <HeadOutlet />
+    <HeadOutlet @rendermode="RenderMode.InteractiveServer" />
 </head>
 <body>
-    <CascadingAuthenticationState>
-        <Router AppAssembly="@typeof(App).Assembly">
-            <Found Context="routeData">
-                <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
-                    <NotAuthorized>
-                        @if (NavigationManager.Uri != $"{NavigationManager.BaseUri}login")
-                        {
-                            <div class="alert alert-warning m-4">
-                                <p>Вы должны авторизоваться для доступа к этой странице.</p>
-                                <a href="/login" class="btn btn-primary">Войти</a>
-                            </div>
-                        }
-                        else
-                        {
-                            <PageTitle>Вход</PageTitle>
-                            <Login />
-                        }
-                    </NotAuthorized>
-                </AuthorizeRouteView>
-                <FocusOnNavigate RouteData="@routeData" Selector="h1" />
-            </Found>
-            <NotFound>
-                <PageTitle>Страница не найдена</PageTitle>
-                <LayoutView Layout="@typeof(MainLayout)">
-                    <p role="alert">Извините, такой страницы нет.</p>
-                </LayoutView>
-            </NotFound>
-        </Router>
-    </CascadingAuthenticationState>
+    @* Здесь мы вызываем Routes ОДИН РАЗ и включаем интерактивность *@
+    <Routes @rendermode="RenderMode.InteractiveServer" />
+
+    <script src="https://kit.fontawesome.com/628c8d2499.js" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="_framework/blazor.web.js"></script>
     <script src="_content/MudBlazor/MudBlazor.min.js"></script>
 </body>

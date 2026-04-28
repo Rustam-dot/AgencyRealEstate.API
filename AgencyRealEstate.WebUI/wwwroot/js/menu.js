@@ -1,49 +1,42 @@
 ﻿window.menu = {
     isOpen: false,
     timeline: null,
-    overlay: null,
 
+    // Инициализация: создаем "сценарий" анимации
     init: function () {
-        this.overlay = document.querySelector('.menu-overlay');
+        const overlay = document.querySelector('.menu-overlay');
+        const container = document.querySelector('.menu-container');
+        const listItems = document.querySelectorAll('.menu-list li');
 
-      
+        if (!overlay || !container) return;
+
+        // Удаляем старый таймлайн, если он был (нужно для горячей перезагрузки Blazor)
+        if (this.timeline) this.timeline.kill();
+
+        // Создаем новый таймлайн (изначально стоит на паузе)
         this.timeline = gsap.timeline({ paused: true });
-        this.timeline
-            .to('.menu-overlay', { duration: 0.4, opacity: 1, visibility: 'visible', ease: 'power2.inOut' })
-            .to('.menu-container', { duration: 0.4, x: '0%', ease: 'power2.out' }, '-=0.2')
-            .fromTo('.menu li', { y: 30, opacity: 0 }, { y: 0, opacity: 1, stagger: 0.1, duration: 0.3, ease: 'power2.out' }, '-=0.1')
-            .reverse();
 
-     
-        if (this.overlay) {
-            this.overlay.addEventListener('click', this.close.bind(this));
+        this.timeline
+            .to(overlay, { duration: 0.3, opacity: 1, autoAlpha: 1, ease: 'power2.inOut' })
+            .to(container, { duration: 0.4, x: '0%', ease: 'power2.out' }, '-=0.1');
+
+        if (listItems.length > 0) {
+            this.timeline.fromTo(listItems,
+                { y: 20, opacity: 0 },
+                { y: 0, opacity: 1, stagger: 0.1, duration: 0.3, ease: 'power2.out' },
+                '-=0.2'
+            );
         }
     },
 
     toggle: function () {
-        if (!this.timeline) this.init();
+        if (!this.timeline) this.init(); // На всякий случай проверяем инициализацию
+
         if (this.isOpen) {
-            this.close();
+            this.timeline.reverse();
         } else {
-            this.open();
+            this.timeline.play();
         }
-    },
-
-    open: function () {
-        if (this.isOpen) return;
-        if (this.overlay) this.overlay.classList.add('active');   
-        this.timeline.play();
-        this.isOpen = true;
-    },
-
-    close: function () {
-        if (!this.isOpen) return;
-        this.timeline.reverse();
-        if (this.overlay) this.overlay.classList.remove('active'); 
-        this.isOpen = false;
+        this.isOpen = !this.isOpen;
     }
 };
-
-window.addEventListener('load', function () {
-    if (window.menu) window.menu.init();
-});

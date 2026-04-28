@@ -5,34 +5,48 @@
 @inject ApiClient Api
 @inject NavigationManager Navigation
 
-<div class="container mt-4">
-    <h2>📋 Каталог объектов</h2>
-    <div class="row">
+<div class="page-wrapper">
+    <div class="hero-header">
+        <h1>Каталог недвижимости</h1>
+        <p>Найдите идеальный вариант среди сотен проверенных объектов</p>
+    </div>
+
+    <div class="property-grid">
         @if (filteredProperties == null)
         {
-            <p class="text-muted">Загрузка...</p>
+            <div class="loader">Загрузка каталога...</div>
         }
         else
         {
             @foreach (var prop in filteredProperties)
             {
-                <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
-                    <div class="card shadow-sm" @onclick="() => GoToProperty(prop.PropertyID)" style="cursor:pointer;">
+                <div class="luxury-card" @onclick="() => GoToProperty(prop.PropertyID)" style="cursor:pointer;">
+                    <div class="card-image-box">
                         @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
                         {
-                            <img src="@prop.PhotoUrls.First()" class="card-img-top" style="height:200px; object-fit:cover;" />
+                            <img src="@prop.PhotoUrls.First()" alt="Property" />
                         }
                         else
                         {
-                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:200px;">
-                                <span class="text-muted">Нет фото</span>
-                            </div>
+                            <div class="no-photo" style="background: #333; height: 100%; display: flex; align-items: center; justify-content: center; color: #777;">Нет фото</div>
                         }
-                        <div class="card-body">
-                            <h6 class="card-title">@prop.Address</h6>
-                            <p class="card-text fw-bold" style="color:#f39c12;">@prop.Price?.ToString("N2") ₽</p>
-                            <span class="badge bg-@GetStatusBadge(prop.StatusName)">@prop.StatusName</span>
+                        <div class="status-badge-overlay @prop.StatusName.ToLower()">
+                            @TranslateStatus(prop.StatusName)
                         </div>
+                    </div>
+                    <div class="card-body-luxury">
+                        <h3 class="card-address-title">@prop.Address</h3>
+                        <p class="card-location-subtitle">@prop.PropertyTypeName</p>
+                        
+                        <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
+                        
+                        <div class="card-features-row">
+                            <span>@prop.TotalArea м²</span>
+                            <span>@prop.Rooms комн.</span>
+                            <span>@prop.Floor этаж</span>
+                        </div>
+
+                        <div class="card-btn-pill">Подробнее</div>
                     </div>
                 </div>
             }
@@ -52,12 +66,12 @@
 
     void GoToProperty(int id) => Navigation.NavigateTo($"/property/{id}");
 
-    string GetStatusBadge(string status) => status switch
+    string TranslateStatus(string status) => status switch
     {
-        "Available" => "success",
-        "Reserved" => "warning",
-        "Sold" => "danger",
-        "Rented" => "info",
-        _ => "secondary"
+        "Available" => "Доступно",
+        "Reserved" => "Забронировано",
+        "Sold" => "Продано",
+        "Rented" => "Сдано",
+        _ => status
     };
 }

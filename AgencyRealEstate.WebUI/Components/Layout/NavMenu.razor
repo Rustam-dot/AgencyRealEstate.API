@@ -1,51 +1,48 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 
-<div class="menu-trigger" onclick="window.menu.toggle()">
-    <span class="menu-trigger-bar"></span>
-    <span class="menu-trigger-bar"></span>
-    <span class="menu-trigger-bar"></span>
-</div>
-
-<div class="menu-overlay">
-    <div class="menu-container">
-        <ul class="menu">
-            @if (isLoggedIn)
-            {
-                <li><a href="/">Главная</a></li>
-
-                @if (hasRealtorAccess)
-                {
-                    <li><a href="/properties">Каталог объектов</a></li>
-                }
-
-                @if (roles.Contains("Realtor"))
-                {
-                    <li><a href="/clients">Клиенты</a></li>
-                }
-
-                @if (hasRealtorAccess)
-                {
-                    <li><a href="/deals">Сделки</a></li>
-                }
-
-                @if (hasManagerAccess)
-                {
-                    <li><a href="/reports">Отчёты</a></li>
-                }
-
-                @if (roles.Contains("Client"))
-                {
-                    <li><a href="/client-cabinet">Личный кабинет</a></li>
-                }
-
-                <li><a href="/logout">Выйти</a></li>
-            }
-            else
-            {
-                <li><a href="/login">Войти</a></li>
-            }
-        </ul>
+<div class="nav-bar">
+    <div class="nav-content">
+        <div class="logo">Elite Estates</div>
+        
+        <div class="nav-links">
+            <div class="dropdown-container" @onclick="ToggleMenu">
+                <span class="nav-item">Меню ▾</span>
+                
+                <ul class="dropdown-menu @(isMenuOpen ? "show" : "")">
+                    <li><a href="/">Главная</a></li>
+                    @if (isLoggedIn)
+                    {
+                        @if (hasRealtorAccess)
+                        {
+                            <li><a href="/properties">Каталог</a></li>
+                        }
+                        @if (roles.Contains("Realtor"))
+                        {
+                            <li><a href="/clients">Клиенты</a></li>
+                        }
+                        @if (hasRealtorAccess)
+                        {
+                            <li><a href="/deals">Сделки</a></li>
+                        }
+                        @if (hasManagerAccess)
+                        {
+                            <li><a href="/reports">Отчёты</a></li>
+                        }
+                        @if (roles.Contains("Client"))
+                        {
+                            <li><a href="/client-cabinet">Кабинет</a></li>
+                        }
+                        <li class="divider"></li>
+                        <li><a href="/logout" class="logout-link">Выйти</a></li>
+                    }
+                    else
+                    {
+                        <li><a href="/login">Войти</a></li>
+                    }
+                </ul>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -54,6 +51,15 @@
     List<string> roles = new();
     bool hasRealtorAccess;
     bool hasManagerAccess;
+    
+    // Переменная для состояния меню
+    bool isMenuOpen = false;
+
+    // Метод для переключения состояния (открыть/закрыть)
+    void ToggleMenu()
+    {
+        isMenuOpen = !isMenuOpen;
+    }
 
     [CascadingParameter]
     private Task<AuthenticationState>? authenticationStateTask { get; set; }
@@ -64,11 +70,7 @@
         {
             var authState = await authenticationStateTask;
             isLoggedIn = authState.User.Identity?.IsAuthenticated == true;
-            roles = authState.User.Claims
-                .Where(c => c.Type == ClaimTypes.Role)
-                .Select(c => c.Value)
-                .ToList();
-
+            roles = authState.User.Claims.Where(c => c.Type == ClaimTypes.Role).Select(c => c.Value).ToList();
             hasRealtorAccess = roles.Contains("Administrator") || roles.Contains("Manager") || roles.Contains("Realtor");
             hasManagerAccess = roles.Contains("Administrator") || roles.Contains("Manager");
         }

@@ -2,105 +2,143 @@
 @rendermode InteractiveServer
 @using AgencyRealEstate.WebUI.Services
 @using AgencyRealEstate.WebUI.Models
+@using System.ComponentModel.DataAnnotations
+@using MudBlazor
 @inject ApiClient Api
 @inject IJSRuntime JsRuntime
 
-<div class="container mt-4">
+<div class="page-wrapper">
     @if (property == null)
     {
-        <p class="text-muted">Загрузка...</p>
+        <div class="loader-container">
+            <div class="loader"></div>
+            <p>Загрузка элитной недвижимости...</p>
+        </div>
     }
     else
     {
-        <h2 class="mb-3" style="color: #e0e0e0;">@property.Address</h2>
+        <div class="property-detail-header">
+            <a href="/properties" class="back-link">← Вернуться в каталог</a>
+        </div>
+
         <div class="row">
-            <div class="col-md-8">
-                @if (property.PhotoUrls?.Any() == true)
-                {
-                    <div id="propertyCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
-                        <div class="carousel-inner rounded">
-                            @for (int i = 0; i < property.PhotoUrls.Count; i++)
+            <div class="col-lg-8">
+                @* Галерея *@
+                <div class="main-gallery">
+                    @if (property.PhotoUrls?.Any() == true)
+                    {
+                        <img src="@property.PhotoUrls.First()" class="featured-image" alt="Main Photo" />
+                        <div class="thumbnails-row">
+                            @foreach (var url in property.PhotoUrls.Skip(1).Take(4))
                             {
-                                <div class="carousel-item @(i == 0 ? "active" : "")">
-                                    <img src="@property.PhotoUrls[i]" class="d-block w-100" style="height:400px; object-fit:cover;" />
-                                </div>
+                                <img src="@url" class="thumb" alt="Thumbnail" />
                             }
                         </div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                        </button>
-                    </div>
-                }
-                else
-                {
-                    <div class="bg-dark d-flex align-items-center justify-content-center rounded" style="height:400px;">
-                        <p class="text-muted">Нет фотографий</p>
-                    </div>
-                }
+                    }
+                </div>
 
-                <div class="card mb-4" style="background-color: #2a2a2a; color: #e0e0e0;">
-                    <div class="card-body">
-                        <h5 class="card-title" style="color: #6295ca;">Характеристики</h5>
-                        <table class="table table-dark table-striped">
-                            <tbody>
-                                <tr><td>Тип</td><td>@property.PropertyTypeName</td></tr>
-                                <tr><td>Общая площадь</td><td>@property.TotalArea м²</td></tr>
-                                <tr><td>Жилая площадь</td><td>@property.LivingArea м²</td></tr>
-                                <tr><td>Комнат</td><td>@property.Rooms</td></tr>
-                                <tr><td>Этаж</td><td>@property.Floor / @property.TotalFloors</td></tr>
-                                <tr><td>Материал стен</td><td>@property.WallMaterialName</td></tr>
-                                <tr><td>Статус</td><td><span class="badge bg-success">@property.StatusName</span></td></tr>
-                            </tbody>
-                        </table>
+                @* ПРЕМИУМ БАР ЦЕНЫ (Под фото) *@
+                <div class="price-action-bar mt-4">
+                    <div class="price-info">
+                        <span class="badge-type-alt">@property.PropertyTypeName</span>
+                        <div class="price-tag-large">
+                            @property.Price?.ToString("N0") <span class="currency">₽</span>
+                        </div>
+                    </div>
+                    <div class="status-indicator">
+                        <div class="pulse-dot"></div>
+                        <span>@property.StatusName</span>
+                    </div>
+                </div>
+
+                @* ОПИСАНИЕ И АДРЕС *@
+                <div class="description-section">
+                    <div class="address-context">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <h2 class="street-title-main">@property.Address</h2>
+                    </div>
+                    <div class="premium-divider"></div>
+                    
+                    <h3 class="section-subtitle">О объекте</h3>
+                    <p class="description-text">@property.Description</p>
+                </div>
+
+                @* Характеристики *@
+                <div class="specs-grid">
+                    <div class="spec-item">
+                        <span class="spec-label">Общая площадь</span>
+                        <span class="spec-value">@property.TotalArea м²</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Жилая площадь</span>
+                        <span class="spec-value">@property.LivingArea м²</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Комнат</span>
+                        <span class="spec-value">@property.Rooms</span>
+                    </div>
+                    <div class="spec-item">
+                        <span class="spec-label">Этаж</span>
+                        <span class="spec-value">@property.Floor / @property.TotalFloors</span>
                     </div>
                 </div>
             </div>
 
-            <div class="col-md-4">
-                <div class="card mb-4" style="background-color: #2a2a2a; color: #e0e0e0;">
-                    <div class="card-body">
-                        <h3 class="card-title" style="color: #f39c12;">@property.Price?.ToString("N2") ₽</h3>
-                        <p>@property.Description</p>
-                        @if (property.Latitude != null && property.Longitude != null)
-                        {
-                            <p>📍 @property.Latitude, @property.Longitude</p>
-                        }
-                    </div>
-                </div>
-
-                <div class="card" style="background-color: #2a2a2a; color: #e0e0e0;">
-                    <div class="card-body">
-                        <h5 class="card-title" style="color: #6295ca;">Записаться на показ</h5>
-                        <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing" FormName="showingForm">
+            <div class="col-lg-4">
+                <div class="sidebar-booking">
+                    <div class="booking-card shadow-lg">
+                        <h4>Записаться на показ</h4>
+                        <p class="text-muted small mb-4">Выберите удобное время, и наш агент свяжется с вами.</p>
+                        
+                        <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing">
                             <DataAnnotationsValidator />
-                            <ValidationSummary />
-                            <div class="mb-3">
-                                <label class="form-label">Дата</label>
-                                <InputDate @bind-Value="newShowing.Date" class="form-control" />
-                                <ValidationMessage For="() => newShowing.Date" />
+                            
+                            <div class="form-group mb-3">
+                                <label class="custom-label">Дата показа</label>
+                                <MudDatePicker @bind-Date="newShowing.Date" 
+                                               MinDate="DateTime.Today" 
+                                               Rounded="true" 
+                                               Variant="Variant.Filled"
+                                               Color="Color.Dark"
+                                               PickerVariant="PickerVariant.Dialog"
+                                               Placeholder="Выберите дату"
+                                               Class="elite-picker" />
+                                <ValidationMessage For="@(() => newShowing.Date)" />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Время</label>
-                                <InputText @bind-Value="newShowing.TimeString" type="time" class="form-control" />
+
+                            <div class="form-group mb-3">
+                                <label class="custom-label">Время</label>
+                                <MudTimePicker @bind-Time="newShowing.Time" 
+                                               Rounded="true" 
+                                               Variant="Variant.Filled"
+                                               Color="Color.Dark"
+                                               AmPm="false"
+                                               PickerVariant="PickerVariant.Dialog"
+                                               Placeholder="00:00"
+                                               Class="elite-picker" />
+                                <ValidationMessage For="@(() => newShowing.Time)" />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Ваше имя</label>
-                                <InputText @bind-Value="newShowing.ClientName" class="form-control" />
-                                <ValidationMessage For="() => newShowing.ClientName" />
+
+                            <div class="form-group mb-3">
+                                <label class="custom-label">Ваше имя</label>
+                                <InputText @bind-Value="newShowing.ClientName" class="input-solid" placeholder="Имя Фамилия" />
+                                <ValidationMessage For="@(() => newShowing.ClientName)" />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Телефон</label>
-                                <InputText @bind-Value="newShowing.Phone" class="form-control" />
-                                <ValidationMessage For="() => newShowing.Phone" />
+
+                            <div class="form-group mb-3">
+                                <label class="custom-label">Телефон</label>
+                                <InputText @bind-Value="newShowing.Phone" class="input-solid" placeholder="+7 (___) ___-__-__" />
+                                <ValidationMessage For="@(() => newShowing.Phone)" />
                             </div>
-                            <div class="mb-3">
-                                <label class="form-label">Комментарий</label>
-                                <InputTextArea @bind-Value="newShowing.Comments" class="form-control" rows="3" />
+
+                            <div class="form-group mb-4">
+                                <label class="custom-label">Комментарий (необязательно)</label>
+                                <InputTextArea @bind-Value="newShowing.Comments" class="input-solid" rows="2" placeholder="Например: есть ли парковка?" />
                             </div>
-                            <button type="submit" class="btn btn-primary">Записаться</button>
+
+                            <button type="submit" class="card-btn-pill w-100">
+                                <i class="fas fa-calendar-check me-2"></i> Отправить заявку
+                            </button>
                         </EditForm>
                     </div>
                 </div>
@@ -112,7 +150,7 @@
 @code {
     [Parameter] public int Id { get; set; }
     private PropertyDto? property;
-    private ShowingRequest newShowing = new();
+    private ShowingRequest newShowing = new() { Date = DateTime.Today };
 
     protected override async Task OnInitializedAsync()
     {
@@ -121,21 +159,21 @@
 
     private async Task SubmitShowing()
     {
-        if (newShowing.Date == null || string.IsNullOrWhiteSpace(newShowing.ClientName) || string.IsNullOrWhiteSpace(newShowing.Phone))
+        // Валидация времени в прошлом (если выбрана сегодняшняя дата)
+        if (newShowing.Date == DateTime.Today && newShowing.Time.HasValue)
         {
-            await JsRuntime.InvokeVoidAsync("alert", "Заполните обязательные поля (дата, имя, телефон).");
-            return;
+            if (newShowing.Time.Value < DateTime.Now.TimeOfDay)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "Упс! Нельзя записаться на время, которое уже прошло. Выберите более поздний час.");
+                return;
+            }
         }
-
-        var time = string.IsNullOrEmpty(newShowing.TimeString)
-                    ? (TimeSpan?)null
-                    : TimeSpan.Parse(newShowing.TimeString);
 
         var request = new CreateShowingRequest
         {
             PropertyId = Id,
-            Date = newShowing.Date.Value,
-            Time = time,
+            Date = newShowing.Date ?? DateTime.Today,
+            Time = newShowing.Time,
             ClientName = newShowing.ClientName,
             ClientPhone = newShowing.Phone,
             Comments = newShowing.Comments
@@ -144,8 +182,8 @@
         try
         {
             await Api.CreateShowingAsync(request);
-            await JsRuntime.InvokeVoidAsync("alert", "Заявка успешно отправлена!");
-            newShowing = new ShowingRequest();
+            await JsRuntime.InvokeVoidAsync("alert", "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.");
+            newShowing = new ShowingRequest { Date = DateTime.Today };
         }
         catch (Exception ex)
         {
@@ -155,15 +193,18 @@
 
     public class ShowingRequest
     {
-        [Required(ErrorMessage = "Укажите дату")]
-        public DateTime? Date { get; set; }
+        [Required(ErrorMessage = "Выберите дату")]
+        public DateTime? Date { get; set; } = DateTime.Today;
 
-        public string? TimeString { get; set; }
+        [Required(ErrorMessage = "Выберите время")]
+        public TimeSpan? Time { get; set; }
 
-        [Required(ErrorMessage = "Введите имя")]
+        [Required(ErrorMessage = "Как вас зовут?")]
+        [StringLength(100, MinimumLength = 2, ErrorMessage = "Имя слишком короткое")]
         public string ClientName { get; set; } = "";
 
-        [Required(ErrorMessage = "Введите телефон")]
+        [Required(ErrorMessage = "Укажите номер телефона")]
+        [Phone(ErrorMessage = "Неверный формат телефона")]
         public string Phone { get; set; } = "";
 
         public string? Comments { get; set; }

@@ -3,42 +3,39 @@
 @using AgencyRealEstate.WebUI.Models
 @inject ApiClient ApiClient
 
-<div class="hero text-center mt-5">
-    <h1 class="fw-bold" style="color: #6295ca;">AgencyRealEstate</h1>
-    <p class="lead text-muted">Найдите дом своей мечты</p>
-</div>
+<div class="page-wrapper">
+    <div class="hero-header">
+        <h1>Избранные объекты</h1>
+        <p>Найдите дом своей мечты в нашей эксклюзивной коллекции</p>
+    </div>
 
-<div class="popular mt-5">
-    <h4 class="mb-4" style="color: #e0e0e0;">🏠 Популярные предложения</h4>
-    <div class="row">
+    <div class="property-grid">
         @if (popularProperties == null)
         {
-            <p class="text-muted">Загрузка...</p>
+            <div class="loader" style="color: white;">Загрузка...</div>
         }
         else
         {
             @foreach (var prop in popularProperties)
             {
-                <div class="col-md-4 col-sm-6 mb-4">
-                    <a href="/property/@prop.PropertyID" class="text-decoration-none">
-                        <div class="card shadow-sm">
-                            @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
-                            {
-                                <img src="@prop.PhotoUrls.First()" class="card-img-top" style="height:200px; object-fit:cover;" />
-                            }
-                            else
-                            {
-                                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:200px;">
-                                    <span class="text-muted">Нет фото</span>
-                                </div>
-                            }
-                            <div class="card-body">
-                                <h6 class="card-title">@prop.Address</h6>
-                                <p class="card-text fw-bold" style="color:#f39c12;">@prop.Price?.ToString("N2") ₽</p>
-                                <span class="badge bg-success">@prop.StatusName</span>
-                            </div>
-                        </div>
-                    </a>
+                <div class="luxury-card">
+                    <div class="card-image-box">
+                        @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
+                        {
+                            <img src="@prop.PhotoUrls.First()" alt="Фото объекта" />
+                        }
+                        else
+                        {
+                            <div class="no-photo">Нет фото</div>
+                        }
+                    </div>
+                    <div class="card-body-luxury">
+                        <h3 class="card-address-title">@prop.Address</h3>
+                        <p class="card-location-subtitle">Центральный район</p>
+                        <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
+                        
+                        <a href="/property/@prop.PropertyID" class="card-btn-pill">Посмотреть</a>
+                    </div>
                 </div>
             }
         }
@@ -50,13 +47,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
-            popularProperties = await ApiClient.GetPropertiesAsync();
-        }
-        catch
-        {
-            popularProperties = new();
-        }
+        try { popularProperties = await ApiClient.GetPropertiesAsync(); }
+        catch { popularProperties = new(); }
     }
 }

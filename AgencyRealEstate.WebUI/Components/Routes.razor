@@ -1,6 +1,36 @@
-﻿<Router AppAssembly="typeof(Program).Assembly">
-    <Found Context="routeData">
-        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" />
-        <FocusOnNavigate RouteData="routeData" Selector="h1" />
-    </Found>
-</Router>
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@inject NavigationManager NavigationManager
+
+<CascadingAuthenticationState>
+    <Router AppAssembly="@typeof(Program).Assembly">
+        <Found Context="routeData">
+            <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
+                <NotAuthorized>
+                    @if (NavigationManager.Uri != $"{NavigationManager.BaseUri}login")
+                    {
+                        <div class="page-wrapper">
+                            <div class="alert alert-warning m-4" style="border-radius: 20px; background: #2d2d2d; color: white; border: 1px solid #444;">
+                                <p>Вы должны авторизоваться для доступа к этой странице.</p>
+                                <a href="/login" class="card-btn-pill" style="display: inline-block; width: auto; padding: 10px 30px;">Войти</a>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <PageTitle>Вход</PageTitle>
+                        <Login />
+                    }
+                </NotAuthorized>
+            </AuthorizeRouteView>
+            <FocusOnNavigate RouteData="@routeData" Selector="h1" />
+        </Found>
+        <NotFound>
+            <PageTitle>Страница не найдена</PageTitle>
+            <LayoutView Layout="@typeof(MainLayout)">
+                <div class="page-wrapper">
+                    <p role="alert" style="color: white;">Извините, такой страницы нет.</p>
+                </div>
+            </LayoutView>
+        </NotFound>
+    </Router>
+</CascadingAuthenticationState>
