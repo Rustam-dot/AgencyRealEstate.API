@@ -1,0 +1,171 @@
+﻿@page "/property/{Id:int}"
+@rendermode InteractiveServer
+@using AgencyRealEstate.WebUI.Services
+@using AgencyRealEstate.WebUI.Models
+@inject ApiClient Api
+@inject IJSRuntime JsRuntime
+
+<div class="container mt-4">
+    @if (property == null)
+    {
+        <p class="text-muted">Загрузка...</p>
+    }
+    else
+    {
+        <h2 class="mb-3" style="color: #e0e0e0;">@property.Address</h2>
+        <div class="row">
+            <div class="col-md-8">
+                @if (property.PhotoUrls?.Any() == true)
+                {
+                    <div id="propertyCarousel" class="carousel slide mb-4" data-bs-ride="carousel">
+                        <div class="carousel-inner rounded">
+                            @for (int i = 0; i < property.PhotoUrls.Count; i++)
+                            {
+                                <div class="carousel-item @(i == 0 ? "active" : "")">
+                                    <img src="@property.PhotoUrls[i]" class="d-block w-100" style="height:400px; object-fit:cover;" />
+                                </div>
+                            }
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#propertyCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#propertyCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                        </button>
+                    </div>
+                }
+                else
+                {
+                    <div class="bg-dark d-flex align-items-center justify-content-center rounded" style="height:400px;">
+                        <p class="text-muted">Нет фотографий</p>
+                    </div>
+                }
+
+                <div class="card mb-4" style="background-color: #2a2a2a; color: #e0e0e0;">
+                    <div class="card-body">
+                        <h5 class="card-title" style="color: #6295ca;">Характеристики</h5>
+                        <table class="table table-dark table-striped">
+                            <tbody>
+                                <tr><td>Тип</td><td>@property.PropertyTypeName</td></tr>
+                                <tr><td>Общая площадь</td><td>@property.TotalArea м²</td></tr>
+                                <tr><td>Жилая площадь</td><td>@property.LivingArea м²</td></tr>
+                                <tr><td>Комнат</td><td>@property.Rooms</td></tr>
+                                <tr><td>Этаж</td><td>@property.Floor / @property.TotalFloors</td></tr>
+                                <tr><td>Материал стен</td><td>@property.WallMaterialName</td></tr>
+                                <tr><td>Статус</td><td><span class="badge bg-success">@property.StatusName</span></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-4">
+                <div class="card mb-4" style="background-color: #2a2a2a; color: #e0e0e0;">
+                    <div class="card-body">
+                        <h3 class="card-title" style="color: #f39c12;">@property.Price?.ToString("N2") ₽</h3>
+                        <p>@property.Description</p>
+                        @if (property.Latitude != null && property.Longitude != null)
+                        {
+                            <p>📍 @property.Latitude, @property.Longitude</p>
+                        }
+                    </div>
+                </div>
+
+                <div class="card" style="background-color: #2a2a2a; color: #e0e0e0;">
+                    <div class="card-body">
+                        <h5 class="card-title" style="color: #6295ca;">Записаться на показ</h5>
+                        <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing" FormName="showingForm">
+                            <DataAnnotationsValidator />
+                            <ValidationSummary />
+                            <div class="mb-3">
+                                <label class="form-label">Дата</label>
+                                <InputDate @bind-Value="newShowing.Date" class="form-control" />
+                                <ValidationMessage For="() => newShowing.Date" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Время</label>
+                                <InputText @bind-Value="newShowing.TimeString" type="time" class="form-control" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Ваше имя</label>
+                                <InputText @bind-Value="newShowing.ClientName" class="form-control" />
+                                <ValidationMessage For="() => newShowing.ClientName" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Телефон</label>
+                                <InputText @bind-Value="newShowing.Phone" class="form-control" />
+                                <ValidationMessage For="() => newShowing.Phone" />
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label">Комментарий</label>
+                                <InputTextArea @bind-Value="newShowing.Comments" class="form-control" rows="3" />
+                            </div>
+                            <button type="submit" class="btn btn-primary">Записаться</button>
+                        </EditForm>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private PropertyDto? property;
+    private ShowingRequest newShowing = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        property = await Api.GetPropertyAsync(Id);
+    }
+
+    private async Task SubmitShowing()
+    {
+        if (newShowing.Date == null || string.IsNullOrWhiteSpace(newShowing.ClientName) || string.IsNullOrWhiteSpace(newShowing.Phone))
+        {
+            await JsRuntime.InvokeVoidAsync("alert", "Заполните обязательные поля (дата, имя, телефон).");
+            return;
+        }
+
+        var time = string.IsNullOrEmpty(newShowing.TimeString)
+                    ? (TimeSpan?)null
+                    : TimeSpan.Parse(newShowing.TimeString);
+
+        var request = new CreateShowingRequest
+        {
+            PropertyId = Id,
+            Date = newShowing.Date.Value,
+            Time = time,
+            ClientName = newShowing.ClientName,
+            ClientPhone = newShowing.Phone,
+            Comments = newShowing.Comments
+        };
+
+        try
+        {
+            await Api.CreateShowingAsync(request);
+            await JsRuntime.InvokeVoidAsync("alert", "Заявка успешно отправлена!");
+            newShowing = new ShowingRequest();
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Ошибка при отправке: {ex.Message}");
+        }
+    }
+
+    public class ShowingRequest
+    {
+        [Required(ErrorMessage = "Укажите дату")]
+        public DateTime? Date { get; set; }
+
+        public string? TimeString { get; set; }
+
+        [Required(ErrorMessage = "Введите имя")]
+        public string ClientName { get; set; } = "";
+
+        [Required(ErrorMessage = "Введите телефон")]
+        public string Phone { get; set; } = "";
+
+        public string? Comments { get; set; }
+    }
+}

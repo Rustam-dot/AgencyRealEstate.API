@@ -1,0 +1,63 @@
+﻿@page "/properties"
+@rendermode InteractiveServer
+@using AgencyRealEstate.WebUI.Services
+@using AgencyRealEstate.WebUI.Models
+@inject ApiClient Api
+@inject NavigationManager Navigation
+
+<div class="container mt-4">
+    <h2>📋 Каталог объектов</h2>
+    <div class="row">
+        @if (filteredProperties == null)
+        {
+            <p class="text-muted">Загрузка...</p>
+        }
+        else
+        {
+            @foreach (var prop in filteredProperties)
+            {
+                <div class="col-lg-4 col-md-6 col-sm-12 mb-4">
+                    <div class="card shadow-sm" @onclick="() => GoToProperty(prop.PropertyID)" style="cursor:pointer;">
+                        @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
+                        {
+                            <img src="@prop.PhotoUrls.First()" class="card-img-top" style="height:200px; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height:200px;">
+                                <span class="text-muted">Нет фото</span>
+                            </div>
+                        }
+                        <div class="card-body">
+                            <h6 class="card-title">@prop.Address</h6>
+                            <p class="card-text fw-bold" style="color:#f39c12;">@prop.Price?.ToString("N2") ₽</p>
+                            <span class="badge bg-@GetStatusBadge(prop.StatusName)">@prop.StatusName</span>
+                        </div>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@code {
+    List<PropertyDto>? allProperties;
+    List<PropertyDto>? filteredProperties;
+
+    protected override async Task OnInitializedAsync()
+    {
+        allProperties = await Api.GetPropertiesAsync();
+        filteredProperties = allProperties;
+    }
+
+    void GoToProperty(int id) => Navigation.NavigateTo($"/property/{id}");
+
+    string GetStatusBadge(string status) => status switch
+    {
+        "Available" => "success",
+        "Reserved" => "warning",
+        "Sold" => "danger",
+        "Rented" => "info",
+        _ => "secondary"
+    };
+}

@@ -1,0 +1,15 @@
+﻿@page "/logout"
+@using System.Web
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Выход...</title>
+</head>
+<body>
+    <script>
+            document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC;';
+            window.location.href = '/login';
+    </script>
+</body>
+</html>
