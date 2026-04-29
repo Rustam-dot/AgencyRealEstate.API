@@ -1,53 +1,147 @@
 ﻿@page "/"
+@rendermode InteractiveServer
 @using AgencyRealEstate.WebUI.Services
 @using AgencyRealEstate.WebUI.Models
 @inject ApiClient ApiClient
+@inject NavigationManager Navigation
 
-<div class="page-wrapper">
-    <div class="hero-header">
-        <h1>Избранные объекты</h1>
-        <p>Найдите дом своей мечты в нашей эксклюзивной коллекции</p>
-    </div>
+<div class="main-container">
+    <section class="hero-block">
+        <div class="hero-overlay"></div>
+        <div class="hero-content">
+            <h1 class="fade-in">Эксклюзивная недвижимость</h1>
+            <p class="fade-in-delay">Найдите идеальное место для жизни в Elite Estates</p>
+            
+            <div class="search-bar-premium">
+                <input type="text" placeholder="Город, район или ЖК..." @bind="searchQuery" @onkeydown="OnKeyDown" />
+                <button class="search-btn" @onclick="Search"><i class="fas fa-search"></i> Найти</button>
+            </div>
+        </div>
+    </section>
 
-    <div class="property-grid">
-        @if (popularProperties == null)
-        {
-            <div class="loader" style="color: white;">Загрузка...</div>
-        }
-        else
-        {
-            @foreach (var prop in popularProperties)
+    <div class="page-wrapper">
+        <div class="section-header">
+            <h2 class="section-title">Популярные объекты</h2>
+            <div class="filter-pills">
+                <span class="pill @(selectedType == null ? "active" : "")" @onclick='() => FilterByType(null)'>Все</span>
+                <span class="pill @(selectedType == "Apartment" ? "active" : "")" @onclick='() => FilterByType("Apartment")'>Квартиры</span>
+                <span class="pill @(selectedType == "House" ? "active" : "")" @onclick='() => FilterByType("House")'>Дома</span>
+                <span class="pill @(selectedType == "Land" ? "active" : "")" @onclick='() => FilterByType("Land")'>Участки</span>
+            </div>
+        </div>
+
+        <div class="property-grid">
+            @if (popularProperties == null)
             {
-                <div class="luxury-card">
-                    <div class="card-image-box">
-                        @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
-                        {
-                            <img src="@prop.PhotoUrls.First()" alt="Фото объекта" />
-                        }
-                        else
-                        {
-                            <div class="no-photo">Нет фото</div>
-                        }
-                    </div>
-                    <div class="card-body-luxury">
-                        <h3 class="card-address-title">@prop.Address</h3>
-                        <p class="card-location-subtitle">Центральный район</p>
-                        <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
-                        
-                        <a href="/property/@prop.PropertyID" class="card-btn-pill">Посмотреть</a>
-                    </div>
-                </div>
+                @for (int i = 0; i < 6; i++)
+                {
+                    <div class="skeleton-card"></div>
+                }
             }
-        }
+            else if (!popularProperties.Any())
+            {
+                <div class="empty-state">По вашему запросу ничего не найдено.</div>
+            }
+            else
+            {
+                @foreach (var prop in popularProperties)
+                {
+                    <div class="luxury-card">
+                        <div class="card-image-box">
+                            @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
+                            {
+                                <img src="@prop.PhotoUrls.First()" alt="Фото" />
+                            }
+                            else
+                            {
+                                <div class="no-photo-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body-luxury">
+                            <div class="card-category">@prop.PropertyTypeName</div>
+                            <h3 class="card-address-title">@prop.Address</h3>
+                            
+                            <div class="card-specs">
+                                <span><i class="fas fa-bed"></i> @prop.Rooms к.</span>
+                                <span><i class="fas fa-ruler-combined"></i> @prop.TotalArea м²</span>
+                            </div>
+
+                            <div class="card-footer">
+                                <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
+                                <a href="/property/@prop.PropertyID" class="btn-view-circle">
+                                    <i class="fas fa-arrow-right"></i>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
     </div>
 </div>
 
 @code {
+    string searchQuery = "";
+    string? selectedType = null;
+    List<PropertyDto>? allProperties;
     List<PropertyDto>? popularProperties;
 
     protected override async Task OnInitializedAsync()
     {
-        try { popularProperties = await ApiClient.GetPropertiesAsync(); }
-        catch { popularProperties = new(); }
+        try
+        {
+            allProperties = await ApiClient.GetPropertiesAsync();
+            ApplyFilter();
+        }
+        catch
+        {
+            allProperties = new();
+            popularProperties = new();
+        }
+    }
+
+    private void FilterByType(string? type)
+    {
+        selectedType = type;
+        ApplyFilter();
+    }
+
+    private void ApplyFilter()
+    {
+        if (allProperties == null)
+        {
+            popularProperties = new();
+            return;
+        }
+
+        if (string.IsNullOrEmpty(selectedType))
+        {
+            popularProperties = allProperties;
+        }
+        else
+        {
+            popularProperties = selectedType switch
+            {
+                "Apartment" => allProperties.Where(p => p.PropertyTypeName == "Квартира").ToList(),
+                "House" => allProperties.Where(p => p.PropertyTypeName is "Дом" or "Таунхаус").ToList(),
+                "Land" => allProperties.Where(p => p.PropertyTypeName == "Участок").ToList(),
+                _ => allProperties
+            };
+        }
+        StateHasChanged();
+    }
+
+    private async void OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            Search();
+    }
+
+    private void Search()
+    {
+        var encoded = Uri.EscapeDataString(searchQuery);
+        Navigation.NavigateTo($"/properties?search={encoded}");
     }
 }

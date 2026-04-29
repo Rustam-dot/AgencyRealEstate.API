@@ -16,7 +16,7 @@ public class ApiClient
     public async Task<List<PropertyDto>> GetPropertiesAsync()
     {
         return await _http.GetFromJsonAsync<List<PropertyDto>>("properties");
-        // Было: "api/properties"
+        
     }
 
         public async Task<PropertyDto> GetPropertyAsync(int id)

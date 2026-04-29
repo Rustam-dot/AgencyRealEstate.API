@@ -34,14 +34,14 @@ builder.Services.AddScoped(sp =>
     return client;
 });
 
-// --- API-клиент для удобства вызовов ---
+
 builder.Services.AddScoped<ApiClient>();
 
-// --- Провайдер состояния аутентификации (читает куку) ---
+
 builder.Services.AddScoped<AuthenticationStateProvider, TokenAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
 
-// --- Фиктивная схема, чтобы работал [Authorize] ---
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = "Custom";
@@ -49,7 +49,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddScheme<AuthenticationSchemeOptions, CustomAuthenticationHandler>("Custom", null);
 
-// --- Blazor + MudBlazor ---
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 

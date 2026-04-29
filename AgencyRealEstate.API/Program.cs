@@ -6,13 +6,7 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-
-
-
-
-
-
-// Add services to the container.
+// --- Аутентификация JWT ---
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -31,9 +25,13 @@ builder.Services.AddAuthentication(options =>
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
     };
 });
+
 builder.Services.AddControllers();
+
+// --- EF Core ---
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -66,39 +64,48 @@ builder.Services.AddSwaggerGen(c =>
         }
     });
 });
+
+// --- CORS (один, без дублирования) ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowBlazor", policy =>
     {
-        policy.WithOrigins("https://localhost:7075") // порт вашего Blazor клиента
+        policy.WithOrigins("https://localhost:7075")
               .AllowAnyHeader()
               .AllowAnyMethod();
     });
 });
-builder.Services.AddCors(options =>
+
+// --- Политика только для администраторов (уже была) ---
+builder.Services.AddAuthorization(options =>
 {
-    options.AddDefaultPolicy(policy =>
-    {
-        policy.WithOrigins("https://localhost:7265")   // порт BlazorWebAssembly (вы узнаете его позже)
-              .AllowAnyHeader()
-              .AllowAnyMethod();
-    });
+    options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrator"));
 });
+
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// --- Middleware pipeline ---
 if (app.Environment.IsDevelopment())
 {
-    app.UseCors();
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
 
+    // Защита Swagger – только для роли Administrator
+
+
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "AgencyRealEstate API v1");
+        // Включаем поле для ввода токена в UI
+        c.OAuthUsePkce();
+    });
+}
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseCors("AllowBlazor");
+
+
 app.UseAuthorization();
 
 app.MapControllers();

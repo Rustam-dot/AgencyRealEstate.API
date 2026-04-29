@@ -11,15 +11,15 @@
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
 
-<div class="page-background">
-    <div class="container-form-1">
+<div class="page-background-premium">
+    <div class="container-form-luxe">
         
         <div class="header-titles">
-            <h1>Elite Estates</h1>
+            <h1>Elite Estates<span class="accent-dot">.</span></h1>
             <p>Ваш путь к роскошной жизни</p>
         </div>
 
-        <div class="form-1">
+        <div class="form-luxe-card">
             <div class="toggle-wrapper">
                 <div class="toggle-bg @(!isLogin ? "right" : "")"></div>
                 <button type="button" class="toggle-btn @(isLogin ? "active" : "")" @onclick="() => isLogin = true">Вход</button>
@@ -33,16 +33,26 @@
                         <DataAnnotationsValidator />
                         <h2 class="form-title">Добро пожаловать</h2>
                         
-                        <InputText @bind-Value="loginModel.Login" placeholder="Электронная почта" class="input-solid" />
-                        <InputText @bind-Value="loginModel.Password" type="password" placeholder="Пароль" class="input-solid" />
+                        <div class="form-group">
+                            <InputText @bind-Value="loginModel.Login" placeholder="Логин" class="input-luxe" />
+                            <ValidationMessage For="@(() => loginModel.Login)" class="validation-msg" />
+                        </div>
+
+                        <div class="form-group">
+                            <InputText @bind-Value="loginModel.Password" type="password" placeholder="Пароль" class="input-luxe" />
+                            <ValidationMessage For="@(() => loginModel.Password)" class="validation-msg" />
+                        </div>
                         
                         <div class="bottom-row login-bottom">
-                            <button type="submit" class="submit-pill">Войти</button>
+                            <button type="submit" class="btn-submit-luxe">
+                                Войти <i class="fas fa-arrow-right ms-2"></i>
+                            </button>
                             <a href="#" @onclick:preventDefault class="forgot-link">Забыли пароль?</a>
                         </div>
+                        
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
-                            <div class="error-msg">@errorMessage</div>
+                            <div class="alert-msg error-msg"><i class="fas fa-exclamation-circle"></i> @errorMessage</div>
                         }
                     </EditForm>
                 }
@@ -52,16 +62,44 @@
                         <DataAnnotationsValidator />
                         <h2 class="form-title">Создать аккаунт</h2>
                         
-                        <InputText @bind-Value="registerModel.FullName" placeholder="Полное имя" class="input-solid" />
-                        <InputText @bind-Value="registerModel.Email" placeholder="Электронная почта" class="input-solid" />
-                        <InputText @bind-Value="registerModel.Password" type="password" placeholder="Пароль" class="input-solid" />
+                        <div class="form-group">
+                            <InputText @bind-Value="registerModel.FullName" placeholder="Полное имя" class="input-luxe" />
+                            <ValidationMessage For="@(() => registerModel.FullName)" class="validation-msg" />
+                        </div>
+
+                        <div class="form-group">
+                            <InputText @bind-Value="registerModel.Login" placeholder="Логин" class="input-luxe" />
+                            <ValidationMessage For="@(() => registerModel.Login)" class="validation-msg" />
+                        </div>
+
+                        <div class="form-group">
+                            <InputText @bind-Value="registerModel.Email" placeholder="Электронная почта" class="input-luxe" />
+                            <ValidationMessage For="@(() => registerModel.Email)" class="validation-msg" />
+                        </div>
+
+                        <div class="form-group">
+                            <InputText @bind-Value="registerModel.Phone" placeholder="Телефон" class="input-luxe" />
+                            <ValidationMessage For="@(() => registerModel.Phone)" class="validation-msg" />
+                        </div>
+
+                        <div class="form-group">
+                            <InputText @bind-Value="registerModel.Password" type="password" placeholder="Пароль" class="input-luxe" />
+                            <ValidationMessage For="@(() => registerModel.Password)" class="validation-msg" />
+                        </div>
                         
                         <div class="bottom-row register-bottom">
-                            <button type="submit" class="submit-pill">Регистрация</button>
+                            <button type="submit" class="btn-submit-luxe w-100">
+                                Зарегистрироваться <i class="fas fa-user-plus ms-2"></i>
+                            </button>
                         </div>
+
+                        @if (!string.IsNullOrEmpty(successMessage))
+                        {
+                            <div class="alert-msg success-msg"><i class="fas fa-check-circle"></i> @successMessage</div>
+                        }
                         @if (!string.IsNullOrEmpty(errorMessage))
                         {
-                            <div class="error-msg">@errorMessage</div>
+                            <div class="alert-msg error-msg"><i class="fas fa-exclamation-circle"></i> @errorMessage</div>
                         }
                     </EditForm>
                 }
@@ -69,20 +107,299 @@
         </div>
 
         <div class="drops">
-            <div class="drop-form-1 drop-1-form-1"></div>
-            <div class="drop-form-1 drop-2-form-1"></div>
-            <div class="drop-form-1 drop-3-form-1"></div>
-            <div class="drop-form-1 drop-4-form-1"></div>
-            <div class="drop-form-1 drop-5-form-1"></div>
+            <div class="drop-glass drop-1"></div>
+            <div class="drop-glass drop-2"></div>
+            <div class="drop-glass drop-3"></div>
+            <div class="drop-glass drop-4"></div>
+            <div class="drop-glass drop-5"></div>
         </div>
     </div>
 </div>
+
+<style>
+    /* --- ОСНОВНОЙ ФОН --- */
+    .page-background-premium {
+        background-color: #1a1a1a;
+        min-height: 100vh;
+        width: 100%;
+        position: relative;
+        overflow: hidden;
+        font-family: 'Inter', 'Roboto', sans-serif;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .container-form-luxe {
+        position: relative;
+        width: 100%;
+        max-width: 480px;
+        z-index: 10;
+        padding: 20px;
+    }
+
+    /* --- ЗАГОЛОВКИ --- */
+    .header-titles {
+        text-align: center;
+        margin-bottom: 30px;
+        color: #ffffff;
+        position: relative;
+        z-index: 2;
+    }
+    
+    .header-titles h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        letter-spacing: -0.5px;
+    }
+    
+    .accent-dot {
+        color: #f39c12; /* Фирменный оранжевый */
+    }
+
+    .header-titles p {
+        color: #a0a0a0;
+        font-size: 1rem;
+        margin-top: 8px;
+        font-weight: 500;
+    }
+
+    /* --- КАРТОЧКА ФОРМЫ --- */
+    .form-luxe-card {
+        background: #242424;
+        padding: 40px;
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        position: relative;
+        z-index: 2;
+    }
+
+    /* --- ПЕРЕКЛЮЧАТЕЛЬ (ТОГГЛ) --- */
+    .toggle-wrapper {
+        display: flex;
+        position: relative;
+        background: #1a1a1a;
+        border-radius: 16px;
+        margin: 0 auto 35px auto;
+        padding: 5px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .toggle-btn {
+        flex: 1;
+        padding: 12px 0;
+        background: transparent;
+        border: none;
+        color: #888;
+        font-weight: 600;
+        font-size: 0.95rem;
+        cursor: pointer;
+        z-index: 2;
+        transition: color 0.3s ease;
+        text-align: center;
+    }
+
+    .toggle-btn.active {
+        color: #ffffff;
+    }
+
+    .toggle-bg {
+        position: absolute;
+        top: 5px;
+        left: 5px;
+        width: calc(50% - 5px);
+        height: calc(100% - 10px);
+        background: #f39c12; /* Оранжевый акцент */
+        border-radius: 12px;
+        transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
+        z-index: 1;
+        box-shadow: 0 4px 15px rgba(243, 156, 18, 0.3);
+    }
+
+    .toggle-bg.right {
+        transform: translateX(100%);
+    }
+
+    /* --- АНИМАЦИИ --- */
+    .fade-in-form {
+        animation: fadeIn 0.4s ease-in-out;
+    }
+
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    h2.form-title {
+        color: #ffffff;
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-bottom: 25px;
+        letter-spacing: -0.3px;
+    }
+
+    /* --- ИНПУТЫ --- */
+    .form-group {
+        margin-bottom: 18px;
+    }
+
+    .input-luxe {
+        background: #1a1a1a !important;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 15px 20px;
+        border: 1px solid #333 !important;
+        border-radius: 12px !important;
+        color: #ffffff !important;
+        font-size: 0.95rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .input-luxe::placeholder {
+        color: #666;
+    }
+
+    .input-luxe:focus {
+        outline: none;
+        border-color: #f39c12 !important;
+        box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
+    }
+
+    /* --- ВАЛИДАЦИЯ --- */
+    .validation-msg {
+        color: #e74c3c;
+        font-size: 0.8rem;
+        margin-top: 6px;
+        display: block;
+        margin-left: 5px;
+    }
+
+    /* --- КНОПКИ И ССЫЛКИ --- */
+    .bottom-row {
+        display: flex;
+        align-items: center;
+        margin-top: 25px;
+    }
+
+    .login-bottom {
+        justify-content: space-between;
+    }
+
+    .btn-submit-luxe {
+        background: #f39c12 !important;
+        color: #ffffff !important;
+        border: none;
+        border-radius: 12px;
+        padding: 14px 28px;
+        font-weight: 600;
+        font-size: 1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .btn-submit-luxe:hover {
+        background: #e67e22 !important;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(243, 156, 18, 0.3);
+    }
+
+    .forgot-link {
+        text-decoration: none;
+        color: #888;
+        font-size: 0.9rem;
+        transition: color 0.3s ease;
+    }
+
+    .forgot-link:hover {
+        color: #f39c12;
+    }
+
+    /* --- АЛЕРТЫ --- */
+    .alert-msg {
+        margin-top: 20px;
+        padding: 12px 15px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .error-msg {
+        background: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+        border: 1px solid rgba(231, 76, 60, 0.2);
+    }
+
+    .success-msg {
+        background: rgba(74, 222, 128, 0.1);
+        color: #4ade80;
+        border: 1px solid rgba(74, 222, 128, 0.2);
+    }
+
+    /* --- ПЛАВАЮЩИЕ ЭЛЕМЕНТЫ (GLASSMORPHISM) --- */
+    .drops {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+        pointer-events: none;
+    }
+
+    .drop-glass {
+        position: absolute;
+        background: rgba(255, 255, 255, 0.02);
+        backdrop-filter: blur(15px);
+        -webkit-backdrop-filter: blur(15px);
+        border-radius: 24px;
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    }
+
+    @@keyframes float1 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(15px, -20px) rotate(5deg); }
+    }
+    @@keyframes float2 {
+        0%, 100% { transform: translate(0, 0) rotate(0deg); }
+        50% { transform: translate(-20px, 15px) rotate(-5deg); }
+    }
+
+    .drop-1 { height: 100px; width: 100px; top: -30px; left: -50px; animation: float1 8s ease-in-out infinite; }
+    .drop-2 { height: 120px; width: 120px; bottom: -40px; right: -40px; animation: float2 10s ease-in-out infinite; border-radius: 50%; }
+    .drop-3 { height: 80px; width: 80px; top: 40%; right: -60px; animation: float1 12s ease-in-out infinite; }
+    .drop-4 { height: 60px; width: 60px; top: -10px; right: 20%; animation: float2 9s ease-in-out infinite; border-radius: 50%; }
+    .drop-5 { height: 90px; width: 90px; bottom: 20%; left: -60px; animation: float1 11s ease-in-out infinite; }
+
+    /* Адаптивность */
+    @@media (max-width: 576px) {
+        .form-luxe-card {
+            padding: 30px 20px;
+        }
+        .header-titles h1 {
+            font-size: 2rem;
+        }
+        .drop-glass {
+            display: none; /* Скрываем декор на мобильных для чистоты */
+        }
+    }
+</style>
 
 @code {
     private bool isLogin = true;
     private LoginRequest loginModel = new();
     private RegisterRequest registerModel = new();
     private string? errorMessage;
+    private string? successMessage;
 
     public class LoginRequest
     {
@@ -98,9 +415,16 @@
         [Required(ErrorMessage = "Введите полное имя")]
         public string FullName { get; set; } = "";
 
+        [Required(ErrorMessage = "Введите логин")]
+        public string Login { get; set; } = "";
+
         [Required(ErrorMessage = "Введите email")]
         [EmailAddress(ErrorMessage = "Некорректный email")]
         public string Email { get; set; } = "";
+
+        [Required(ErrorMessage = "Введите телефон")]
+        [Phone(ErrorMessage = "Некорректный телефон")]
+        public string Phone { get; set; } = "";
 
         [Required(ErrorMessage = "Введите пароль")]
         public string Password { get; set; } = "";
@@ -141,9 +465,22 @@
     private async Task HandleRegister()
     {
         errorMessage = null;
+        successMessage = null;
+
         try
         {
-            errorMessage = "Функция регистрации в разработке.";
+            var response = await Http.PostAsJsonAsync("auth/register", registerModel);
+            if (response.IsSuccessStatusCode)
+            {
+                successMessage = "Регистрация прошла успешно! Теперь вы можете войти.";
+                isLogin = true; // переключаем на вход
+                registerModel = new RegisterRequest(); // очищаем поля
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                errorMessage = errorContent.Contains("error") ? errorContent : "Ошибка регистрации";
+            }
         }
         catch (Exception ex)
         {
@@ -151,245 +488,3 @@
         }
     }
 }
-
-<style>
-    /* Фоновые стили страницы */
-    .page-background {
-        background-color: #212121;
-        min-height: 100vh;
-        width: 100%;
-        position: relative;
-        overflow: hidden;
-        font-family: "Montserrat", sans-serif;
-    }
-
-    /* Заголовок Elite Estates */
-    .header-titles {
-        text-align: center;
-        margin-bottom: 20px;
-        color: #ffffff;
-        position: relative;
-        z-index: 2;
-    }
-    .header-titles h1 {
-        font-size: 2.2rem;
-        font-weight: 700;
-        margin: 0;
-        letter-spacing: 1px;
-    }
-    .header-titles p {
-        color: #8da1b9;
-        font-size: 1rem;
-        margin-top: 5px;
-    }
-
-    /* Контейнер */
-    .container-form-1 {
-        position: absolute;
-        transform: translate(-50%, -50%);
-        top: 50%;
-        left: 50%;
-        width: 100%;
-        max-width: 450px;
-    }
-
-    /* Сама форма (теперь полупрозрачная) */
-    .form-1 {
-        background: rgba(45, 45, 45, 0.6); /* Полупрозрачный фон */
-        backdrop-filter: blur(12px);       /* Эффект матового стекла */
-        -webkit-backdrop-filter: blur(12px);
-        padding: 2.5em 3em;
-        border-radius: 20px;
-        border-left: 1px solid rgba(255, 255, 255, 0.1);
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 20px 20px 40px -6px rgba(0, 0, 0, 0.6);
-        position: relative;
-        z-index: 2;
-    }
-
-    /* Переключатель Вход/Регистрация */
-    .toggle-wrapper {
-        display: flex;
-        position: relative;
-        margin: 0 auto 30px auto;
-        width: 80%;
-        justify-content: space-between;
-    }
-    .toggle-btn {
-        flex: 1;
-        padding: 12px 0;
-        background: transparent;
-        border: none;
-        color: #999;
-        font-weight: 600;
-        font-size: 1rem;
-        font-family: "Montserrat", sans-serif;
-        cursor: pointer;
-        z-index: 2;
-        transition: color 0.3s ease;
-        text-align: center;
-    }
-    .toggle-btn.active {
-        color: #fff;
-    }
-    .toggle-bg {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 50%;
-        height: 100%;
-        background: rgba(80, 80, 80, 0.5); /* Немного прозрачный ползунок */
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 5000px;
-        transition: transform 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
-        z-index: 1;
-    }
-    .toggle-bg.right {
-        transform: translateX(100%);
-    }
-
-    /* Анимация смены форм */
-    .fade-in-form {
-        animation: fadeIn 0.4s ease-in-out;
-    }
-    @@keyframes fadeIn {
-        from { opacity: 0; transform: translateY(5px); }
-        to { opacity: 1; transform: translateY(0); }
-    }
-
-    /* Текст внутри формы */
-    h2.form-title {
-        color: #fff;
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 25px;
-        text-align: left;
-    }
-
-    /* Поля ввода */
-    .input-solid {
-        background: #f4f5f7 !important;
-        width: 100%;
-        box-sizing: border-box;
-        padding: 1.2em 1.5em;
-        margin-bottom: 1.2em;
-        border: none;
-        border-radius: 5000px !important;
-        color: #333;
-        font-family: Montserrat, sans-serif;
-        font-size: 0.95rem;
-        font-weight: 500;
-        transition: all 0.2s ease-in-out;
-    }
-    .input-solid::placeholder {
-        color: #8a94a6;
-    }
-    .input-solid:focus {
-        outline: 2px solid #aaa;
-        background: #ffffff !important;
-    }
-
-    /* Кнопки и ссылки снизу */
-    .bottom-row {
-        display: flex;
-        align-items: center;
-        margin-top: 10px;
-    }
-    .login-bottom {
-        justify-content: space-between;
-    }
-    .register-bottom {
-        justify-content: flex-start;
-    }
-    
-    .submit-pill {
-        width: auto;
-        min-width: 130px;
-        font-size: 1rem;
-        background: transparent;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        border-radius: 5000px;
-        color: #fff;
-        font-family: Montserrat, sans-serif;
-        font-weight: 600;
-        padding: 0.8em 1.5em;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-    }
-    .submit-pill:hover {
-        background: rgba(255, 255, 255, 0.15);
-    }
-
-    .forgot-link {
-        text-decoration: none;
-        color: #c0c0c0;
-        font-size: 0.85rem;
-        transition: color 0.2s ease;
-    }
-    .forgot-link:hover {
-        color: #ffffff;
-    }
-    
-    .error-msg {
-        color: #ffaaaa;
-        margin-top: 15px;
-        font-size: 0.9rem;
-        text-align: center;
-    }
-
-    /* --- КУБЫ --- */
-    .drop-form-1 {
-        background: rgba(255, 255, 255, 0.05);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-        border-radius: 15px;
-        border-left: 1px solid rgba(255, 255, 255, 0.15);
-        border-top: 1px solid rgba(255, 255, 255, 0.15);
-        box-shadow: 10px 10px 40px -8px rgba(0, 0, 0, 0.3);
-        position: absolute;
-    }
-
-    /* Более сложные и «рандомные» анимации */
-    @@keyframes driftRandom1 {
-        0%   { transform: translate(0, 0) rotate(0deg); }
-        33%  { transform: translate(25px, -15px) rotate(10deg); }
-        66%  { transform: translate(-10px, 20px) rotate(-5deg); }
-        100% { transform: translate(0, 0) rotate(0deg); }
-    }
-    @@keyframes driftRandom2 {
-        0%   { transform: translate(0, 0) rotate(0deg); }
-        33%  { transform: translate(-20px, -25px) rotate(-15deg); }
-        66%  { transform: translate(15px, -10px) rotate(10deg); }
-        100% { transform: translate(0, 0) rotate(0deg); }
-    }
-    @@keyframes driftRandom3 {
-        0%   { transform: translate(0, 0) scale(1); }
-        33%  { transform: translate(-30px, 15px) scale(1.05); }
-        66%  { transform: translate(10px, -20px) scale(0.95); }
-        100% { transform: translate(0, 0) scale(1); }
-    }
-    @@keyframes driftRandom4 {
-        0%   { transform: translate(0, 0) rotate(0deg); }
-        25%  { transform: translate(20px, -30px) rotate(5deg); }
-        50%  { transform: translate(40px, 0px) rotate(-5deg); }
-        75%  { transform: translate(10px, 20px) rotate(8deg); }
-        100% { transform: translate(0, 0) rotate(0deg); }
-    }
-    @@keyframes driftRandom5 {
-        0%   { transform: translate(0, 0); }
-        33%  { transform: translate(-15px, 25px); }
-        66%  { transform: translate(-30px, -10px); }
-        100% { transform: translate(0, 0); }
-    }
-
-    .drop-1-form-1 { height: 80px; width: 80px; top: -20px; left: -40px; z-index: 1; animation: driftRandom1 8s ease-in-out infinite; }
-    
-    /* Нижний правый угол (drop-2 и drop-3). z-index: 3 делает их поверх формы */
-    .drop-2-form-1 { height: 80px; width: 80px; bottom: -30px; right: -10px; z-index: 3; animation: driftRandom2 9s ease-in-out infinite; }
-    .drop-3-form-1 { height: 100px; width: 100px; bottom: 120px; right: -50px; z-index: 3; animation: driftRandom3 11s ease-in-out infinite; }
-    
-    /* Большой квадрат: z-index: 3, летает НАД формой */
-    .drop-4-form-1 { height: 120px; width: 120px; top: -60px; right: -40px; z-index: 3; animation: driftRandom4 14s ease-in-out infinite; }
-    
-    .drop-5-form-1 { height: 60px; width: 60px; bottom: 170px; left: 90px; z-index: 1; animation: driftRandom5 10s ease-in-out infinite; }
-</style>

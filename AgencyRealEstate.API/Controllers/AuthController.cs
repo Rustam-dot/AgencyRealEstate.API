@@ -2,13 +2,14 @@
 using AgencyRealEstate.API.Data;
 using AgencyRealEstate.API.Data.Models;
 using AgencyRealEstate.API.Services;
+using AgencyRealEstate.API.Constants;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
-using AgencyRealEstate.API.Constants;
+using Microsoft.AspNetCore.Authorization;
 
 namespace AgencyRealEstate.API.Controllers;
 
@@ -19,24 +20,13 @@ public class AuthController : ControllerBase
     private readonly AppDbContext _context;
     private readonly IConfiguration _config;
 
-    public class RegisterRequest
-    {
-        [Required] public string Login { get; set; }
-        [Required] public string Password { get; set; }
-        [Required][EmailAddress] public string Email { get; set; }
-        [Required] public string FullName { get; set; }
-        [Required] public string Phone { get; set; }
-    }
-
-
-
     public AuthController(AppDbContext context, IConfiguration config)
     {
         _context = context;
         _config = config;
     }
 
-    // Модель запроса с валидацией
+    // Модель для входа
     public class LoginRequest
     {
         [Required(ErrorMessage = "Логин обязателен")]
@@ -46,6 +36,18 @@ public class AuthController : ControllerBase
         [Required(ErrorMessage = "Пароль обязателен")]
         [MinLength(1)]
         public string Password { get; set; } = string.Empty;
+    }
+
+    // Модель для регистрации
+    public class RegisterRequest
+    {
+        [Required] public string Login { get; set; } = string.Empty;
+        [Required] public string Password { get; set; } = string.Empty;
+        [Required][EmailAddress] public string Email { get; set; } = string.Empty;
+        [Required] public string FullName { get; set; } = string.Empty;
+        [Required] public string Phone { get; set; } = string.Empty;
+        // Роль (опционально). Если не указано, используется Client.
+        public byte? RoleId { get; set; }
     }
 
     public class LoginResponse
@@ -58,30 +60,19 @@ public class AuthController : ControllerBase
     [HttpPost("login")]
     public async Task<IActionResult> Login([FromBody] LoginRequest request)
     {
-        // Проверка модели
         if (!ModelState.IsValid)
-        {
             return BadRequest(ModelState);
-        }
 
-        // Ищем пользователя
         var user = await _context.Users
             .Include(u => u.Role)
             .FirstOrDefaultAsync(u => u.Login == request.Login && u.IsActive);
 
-        // 1 – пользователь не найден
         if (user == null)
-        {
             return Unauthorized(new { error = "Пользователь с таким логином не найден или неактивен" });
-        }
 
-        // 2 – проверка пароля
         if (!PasswordService.VerifyPassword(request.Password, user.PasswordHash, user.PasswordSalt))
-        {
             return Unauthorized(new { error = "Неверный пароль" });
-        }
 
-        // Успешный вход – генерация токена
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, user.UserId.ToString()),
@@ -104,10 +95,8 @@ public class AuthController : ControllerBase
             FullName = user.Login,
             Role = user.Role.RoleName
         });
-
-
-
     }
+
     [HttpPost("register")]
     public async Task<IActionResult> Register([FromBody] RegisterRequest request)
     {
@@ -117,34 +106,48 @@ public class AuthController : ControllerBase
         if (await _context.Users.AnyAsync(u => u.Login == request.Login))
             return Conflict("Логин уже занят");
 
-        // Хеширование пароля
+        
+        byte roleId = (byte)UserRoles.Client; 
+
+        
+        if (User.Identity?.IsAuthenticated == true && User.IsInRole("Administrator"))
+        {
+            if (request.RoleId.HasValue)
+                roleId = request.RoleId.Value;
+        }
+
         var (hash, salt) = PasswordService.CreatePasswordHash(request.Password);
 
-        // Создаём пользователя с ролью Client (4)
         var user = new User
         {
             Login = request.Login,
             Email = request.Email,
             PasswordHash = hash,
             PasswordSalt = salt,
-            RoleId = (byte)UserRoles.Client, 
+            RoleId = roleId,
             IsActive = true,
-            CreatedByUserId = 1 // временно администратор
+            CreatedByUserId = 14 // временно
         };
         _context.Users.Add(user);
         await _context.SaveChangesAsync();
 
-        // Создаём запись в Clients
-        var client = new Client
+        // Создаём клиента в любом случае, если роль позволяет
+        if (roleId == (byte)UserRoles.Client ||
+            roleId == (byte)UserRoles.Administrator ||
+            roleId == (byte)UserRoles.Manager ||
+            roleId == (byte)UserRoles.Realtor)
         {
-            FullName = request.FullName,
-            Phone = request.Phone,
-            Email = request.Email,
-            UserId = user.UserId,
-            CreatedByUserId = 1
-        };
-        _context.Clients.Add(client);
-        await _context.SaveChangesAsync();
+            var client = new Client
+            {
+                FullName = request.FullName,
+                Phone = request.Phone,
+                Email = request.Email,
+                UserId = user.UserId,
+                CreatedByUserId = 14
+            };
+            _context.Clients.Add(client);
+            await _context.SaveChangesAsync();
+        }
 
         return Ok(new { message = "Регистрация прошла успешно" });
     }

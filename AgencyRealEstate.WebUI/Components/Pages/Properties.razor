@@ -5,63 +5,136 @@
 @inject ApiClient Api
 @inject NavigationManager Navigation
 
-<div class="page-wrapper">
-    <div class="hero-header">
-        <h1>Каталог недвижимости</h1>
-        <p>Найдите идеальный вариант среди сотен проверенных объектов</p>
-    </div>
 
-    <div class="property-grid">
-        @if (filteredProperties == null)
-        {
-            <div class="loader">Загрузка каталога...</div>
-        }
-        else
-        {
-            @foreach (var prop in filteredProperties)
+<div class="main-container">
+
+    <div class="page-wrapper" style="margin-top: 90px;">
+        <div class="section-header">
+            <div>
+                <h1 class="section-title">Каталог недвижимости</h1>
+                <p class="section-subtitle">Найдите идеальный вариант среди проверенных объектов</p>
+            </div>
+            <div class="filter-pills">
+                <span class="pill @(selectedType == null ? "active" : "")" @onclick='() => FilterByType(null)'>Все</span>
+                <span class="pill @(selectedType == "Apartment" ? "active" : "")" @onclick='() => FilterByType("Apartment")'>Квартиры</span>
+                <span class="pill @(selectedType == "House" ? "active" : "")" @onclick='() => FilterByType("House")'>Дома</span>
+                <span class="pill @(selectedType == "Commercial" ? "active" : "")" @onclick='() => FilterByType("Commercial")'>Офисы</span>
+            </div>
+        </div>
+
+        <div class="property-grid">
+            @if (filteredProperties == null)
             {
-                <div class="luxury-card" @onclick="() => GoToProperty(prop.PropertyID)" style="cursor:pointer;">
-                    <div class="card-image-box">
-                        @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
-                        {
-                            <img src="@prop.PhotoUrls.First()" alt="Property" />
-                        }
-                        else
-                        {
-                            <div class="no-photo" style="background: #333; height: 100%; display: flex; align-items: center; justify-content: center; color: #777;">Нет фото</div>
-                        }
-                        <div class="status-badge-overlay @prop.StatusName.ToLower()">
-                            @TranslateStatus(prop.StatusName)
-                        </div>
-                    </div>
-                    <div class="card-body-luxury">
-                        <h3 class="card-address-title">@prop.Address</h3>
-                        <p class="card-location-subtitle">@prop.PropertyTypeName</p>
-                        
-                        <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
-                        
-                        <div class="card-features-row">
-                            <span>@prop.TotalArea м²</span>
-                            <span>@prop.Rooms комн.</span>
-                            <span>@prop.Floor этаж</span>
-                        </div>
-
-                        <div class="card-btn-pill">Подробнее</div>
-                    </div>
-                </div>
+                @for (int i = 0; i < 8; i++)
+                {
+                    <div class="skeleton-card"></div>
+                }
             }
-        }
+            else if (!filteredProperties.Any())
+            {
+                <div class="empty-state">В данном разделе пока нет доступных объектов.</div>
+            }
+            else
+            {
+                @foreach (var prop in filteredProperties)
+                {
+                    <div class="luxury-card" @onclick="() => GoToProperty(prop.PropertyID)">
+                        <div class="card-image-box">
+                            @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
+                            {
+                                <img src="@prop.PhotoUrls.First()" alt="Property" class="card-img-fixed" />
+                            }
+                            else
+                            {
+                                <div class="no-photo-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            }
+                            <div class="status-badge-overlay @prop.StatusName.ToLower()">
+                                @TranslateStatus(prop.StatusName)
+                            </div>
+                        </div>
+                        <div class="card-body-luxury">
+                            <div class="card-main-info">
+                                <div class="card-category">@prop.PropertyTypeName</div>
+                                <h3 class="card-address-title">@prop.Address</h3>
+                                <div class="card-specs">
+                                    <span><i class="fas fa-bed"></i> @prop.Rooms к.</span>
+                                    <span><i class="fas fa-ruler-combined"></i> @prop.TotalArea м²</span>
+                                    <span><i class="fas fa-layer-group"></i> @prop.Floor эт.</span>
+                                </div>
+                            </div>
+                            <div class="card-footer">
+                                <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
+                                <div class="btn-view-circle">
+                                    <i class="fas fa-arrow-right"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
     </div>
 </div>
 
 @code {
+    [Parameter]
+    [SupplyParameterFromQuery]
+    public string? Search { get; set; }
+
+    string? selectedType;
     List<PropertyDto>? allProperties;
     List<PropertyDto>? filteredProperties;
 
     protected override async Task OnInitializedAsync()
     {
-        allProperties = await Api.GetPropertiesAsync();
-        filteredProperties = allProperties;
+        try
+        {
+            allProperties = await Api.GetPropertiesAsync();
+            ApplyFilters();
+        }
+        catch { filteredProperties = new(); }
+    }
+
+    protected override void OnParametersSet()
+    {
+        ApplyFilters();
+    }
+
+    void FilterByType(string? type)
+    {
+        selectedType = type;
+        ApplyFilters();
+    }
+
+    void ApplyFilters()
+    {
+        if (allProperties == null)
+        {
+            filteredProperties = new();
+            return;
+        }
+
+        var query = allProperties.AsEnumerable();
+
+        // Поиск по адресу (приходит из параметра Search)
+        if (!string.IsNullOrWhiteSpace(Search))
+            query = query.Where(p => p.Address?.Contains(Search, StringComparison.OrdinalIgnoreCase) == true);
+
+        // Фильтр по типу
+        if (!string.IsNullOrEmpty(selectedType))
+        {
+            query = selectedType switch
+            {
+                "Apartment" => query.Where(p => p.PropertyTypeName == "Квартира"),
+                "House" => query.Where(p => p.PropertyTypeName == "Дом" || p.PropertyTypeName == "Таунхаус"),
+                "Commercial" => query.Where(p => p.PropertyTypeName == "Коммерческая" || p.PropertyTypeName == "Участок"),
+                _ => query
+            };
+        }
+
+        filteredProperties = query.ToList();
     }
 
     void GoToProperty(int id) => Navigation.NavigateTo($"/property/{id}");

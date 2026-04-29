@@ -12,11 +12,11 @@ public class TokenStorage
     public string? Token
     {
         get => _httpContextAccessor.HttpContext?.Request.Cookies["authToken"];
-        set => _ = value; // кука устанавливается через JS в Login.razor
+        set => _ = value; 
     }
 
     public void Clear()
     {
-        // кука удаляется через JS в Logout.razor
+       
     }
 }

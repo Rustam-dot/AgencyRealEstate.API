@@ -3,143 +3,160 @@
 @using AgencyRealEstate.WebUI.Services
 @using AgencyRealEstate.WebUI.Models
 @using System.ComponentModel.DataAnnotations
-@using MudBlazor
 @inject ApiClient Api
 @inject IJSRuntime JsRuntime
 
-<div class="page-wrapper">
+<div class="page-wrapper-premium">
     @if (property == null)
     {
         <div class="loader-container">
-            <div class="loader"></div>
-            <p>Загрузка элитной недвижимости...</p>
+            <div class="spinner-premium"></div>
         </div>
     }
     else
     {
-        <div class="property-detail-header">
-            <a href="/properties" class="back-link">← Вернуться в каталог</a>
-        </div>
-
-        <div class="row">
-            <div class="col-lg-8">
-                @* Галерея *@
-                <div class="main-gallery">
-                    @if (property.PhotoUrls?.Any() == true)
-                    {
-                        <img src="@property.PhotoUrls.First()" class="featured-image" alt="Main Photo" />
-                        <div class="thumbnails-row">
-                            @foreach (var url in property.PhotoUrls.Skip(1).Take(4))
-                            {
-                                <img src="@url" class="thumb" alt="Thumbnail" />
-                            }
-                        </div>
-                    }
-                </div>
-
-                @* ПРЕМИУМ БАР ЦЕНЫ (Под фото) *@
-                <div class="price-action-bar mt-4">
-                    <div class="price-info">
-                        <span class="badge-type-alt">@property.PropertyTypeName</span>
-                        <div class="price-tag-large">
-                            @property.Price?.ToString("N0") <span class="currency">₽</span>
-                        </div>
-                    </div>
-                    <div class="status-indicator">
-                        <div class="pulse-dot"></div>
-                        <span>@property.StatusName</span>
-                    </div>
-                </div>
-
-                @* ОПИСАНИЕ И АДРЕС *@
-                <div class="description-section">
-                    <div class="address-context">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <h2 class="street-title-main">@property.Address</h2>
-                    </div>
-                    <div class="premium-divider"></div>
-                    
-                    <h3 class="section-subtitle">О объекте</h3>
-                    <p class="description-text">@property.Description</p>
-                </div>
-
-                @* Характеристики *@
-                <div class="specs-grid">
-                    <div class="spec-item">
-                        <span class="spec-label">Общая площадь</span>
-                        <span class="spec-value">@property.TotalArea м²</span>
-                    </div>
-                    <div class="spec-item">
-                        <span class="spec-label">Жилая площадь</span>
-                        <span class="spec-value">@property.LivingArea м²</span>
-                    </div>
-                    <div class="spec-item">
-                        <span class="spec-label">Комнат</span>
-                        <span class="spec-value">@property.Rooms</span>
-                    </div>
-                    <div class="spec-item">
-                        <span class="spec-label">Этаж</span>
-                        <span class="spec-value">@property.Floor / @property.TotalFloors</span>
-                    </div>
-                </div>
+        <div class="container-premium">
+            @* Хлебные крошки / Навигация *@
+            <div class="property-detail-header mb-4">
+                <a href="/properties" class="back-link">
+                    <i class="fas fa-chevron-left me-2"></i> Вернуться в каталог
+                </a>
             </div>
 
-            <div class="col-lg-4">
-                <div class="sidebar-booking">
-                    <div class="booking-card shadow-lg">
-                        <h4>Записаться на показ</h4>
-                        <p class="text-muted small mb-4">Выберите удобное время, и наш агент свяжется с вами.</p>
-                        
-                        <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing">
-                            <DataAnnotationsValidator />
+            <div class="premium-grid">
+                @* Левая колонка: Контент объекта *@
+                <div class="content-section">
+                    <div class="main-gallery-card">
+                        <div class="featured-image-wrapper">
+                            @if (property.PhotoUrls?.Any() == true)
+                            {
+                                <img src="@(selectedPhotoUrl ?? property.PhotoUrls.First())" class="featured-image" alt="Property Photo" />
+                            }
+                            else
+                            {
+                                <div class="no-photo-placeholder-lg">
+                                    <i class="fas fa-camera-retro"></i>
+                                    <span>Фотографии отсутствуют</span>
+                                </div>
+                            }
                             
-                            <div class="form-group mb-3">
-                                <label class="custom-label">Дата показа</label>
-                                <MudDatePicker @bind-Date="newShowing.Date" 
-                                               MinDate="DateTime.Today" 
-                                               Rounded="true" 
-                                               Variant="Variant.Filled"
-                                               Color="Color.Dark"
-                                               PickerVariant="PickerVariant.Dialog"
-                                               Placeholder="Выберите дату"
-                                               Class="elite-picker" />
-                                <ValidationMessage For="@(() => newShowing.Date)" />
+                            <div class="status-badge-premium @property.StatusName?.ToLower()">
+                                @TranslateStatus(property.StatusName)
                             </div>
+                        </div>
 
-                            <div class="form-group mb-3">
-                                <label class="custom-label">Время</label>
-                                <MudTimePicker @bind-Time="newShowing.Time" 
-                                               Rounded="true" 
-                                               Variant="Variant.Filled"
-                                               Color="Color.Dark"
-                                               AmPm="false"
-                                               PickerVariant="PickerVariant.Dialog"
-                                               Placeholder="00:00"
-                                               Class="elite-picker" />
-                                <ValidationMessage For="@(() => newShowing.Time)" />
+                        @if (property.PhotoUrls?.Count > 1)
+                        {
+                            <div class="thumbnails-container">
+                                @foreach (var url in property.PhotoUrls)
+                                {
+                                    <div class="thumb-item @(url == (selectedPhotoUrl ?? property.PhotoUrls.First()) ? "active" : "")"
+                                         @onclick="() => selectedPhotoUrl = url">
+                                        <img src="@url" alt="Preview" />
+                                    </div>
+                                }
                             </div>
+                        }
+                    </div>
 
-                            <div class="form-group mb-3">
-                                <label class="custom-label">Ваше имя</label>
-                                <InputText @bind-Value="newShowing.ClientName" class="input-solid" placeholder="Имя Фамилия" />
-                                <ValidationMessage For="@(() => newShowing.ClientName)" />
+                    <div class="property-info-card mt-4">
+                        <div class="info-main-header">
+                            <span class="type-label">@property.PropertyTypeName</span>
+                            <h1 class="property-address-title">@property.Address</h1>
+                            <div class="price-hero">@property.Price?.ToString("N0") <span class="currency">₽</span></div>
+                        </div>
+
+                        <div class="specs-grid">
+                            <div class="spec-item">
+                                <div class="spec-icon-wrapper"><i class="fas fa-ruler-combined"></i></div>
+                                <div class="spec-text">
+                                    <span class="spec-label">Общая площадь</span>
+                                    <span class="spec-value">@property.TotalArea м²</span>
+                                </div>
                             </div>
-
-                            <div class="form-group mb-3">
-                                <label class="custom-label">Телефон</label>
-                                <InputText @bind-Value="newShowing.Phone" class="input-solid" placeholder="+7 (___) ___-__-__" />
-                                <ValidationMessage For="@(() => newShowing.Phone)" />
+                            <div class="spec-item">
+                                <div class="spec-icon-wrapper"><i class="fas fa-bed"></i></div>
+                                <div class="spec-text">
+                                    <span class="spec-label">Жилая площадь</span>
+                                    <span class="spec-value">@(property.LivingArea?.ToString() ?? "—") м²</span>
+                                </div>
                             </div>
-
-                            <div class="form-group mb-4">
-                                <label class="custom-label">Комментарий (необязательно)</label>
-                                <InputTextArea @bind-Value="newShowing.Comments" class="input-solid" rows="2" placeholder="Например: есть ли парковка?" />
+                            <div class="spec-item">
+                                <div class="spec-icon-wrapper"><i class="fas fa-door-open"></i></div>
+                                <div class="spec-text">
+                                    <span class="spec-label">Комнат</span>
+                                    <span class="spec-value">@property.Rooms</span>
+                                </div>
                             </div>
+                            <div class="spec-item">
+                                <div class="spec-icon-wrapper"><i class="fas fa-layer-group"></i></div>
+                                <div class="spec-text">
+                                    <span class="spec-label">Этаж</span>
+                                    <span class="spec-value">@property.Floor / @property.TotalFloors</span>
+                                </div>
+                            </div>
+                        </div>
 
-                            <button type="submit" class="card-btn-pill w-100">
-                                <i class="fas fa-calendar-check me-2"></i> Отправить заявку
-                            </button>
-                        </EditForm>
+                        <div class="description-block">
+                            <h3 class="block-title">Описание объекта</h3>
+                            <div class="description-content">
+                                @property.Description
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                @* Правая колонка: Форма записи *@
+                <div class="sidebar-section">
+                    <div class="sticky-sidebar">
+                        <div class="booking-card-premium">
+                            <h4 class="booking-header">Записаться на показ</h4>
+                            <p class="booking-subheader">Оставьте заявку, и наш агент свяжется с вами</p>
+                            
+                            <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing">
+                                <DataAnnotationsValidator />
+                                
+                                <div class="luxe-form-group">
+                                    <label>Дата показа</label>
+                                    <div class="input-with-icon">
+                                        <InputDate @bind-Value="newShowing.Date" class="luxe-input" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
+                                        <i class="fas fa-calendar-day"></i>
+                                    </div>
+                                    <ValidationMessage For="@(() => newShowing.Date)" class="luxe-error" />
+                                </div>
+
+                                <div class="luxe-form-group">
+                                    <label>Удобное время</label>
+                                    <div class="input-with-icon">
+                                        <input type="time" @bind="newShowing.Time" class="luxe-input" />
+                                        <i class="fas fa-clock"></i>
+                                    </div>
+                                    <ValidationMessage For="@(() => newShowing.Time)" class="luxe-error" />
+                                </div>
+
+                                <div class="luxe-form-group">
+                                    <label>Ваше имя</label>
+                                    <InputText @bind-Value="newShowing.ClientName" class="luxe-input" placeholder="Александр Пушкин" />
+                                    <ValidationMessage For="@(() => newShowing.ClientName)" class="luxe-error" />
+                                </div>
+
+                                <div class="luxe-form-group">
+                                    <label>Контактный телефон</label>
+                                    <InputText @bind-Value="newShowing.Phone" class="luxe-input" placeholder="+7 (900) 000-00-00" />
+                                    <ValidationMessage For="@(() => newShowing.Phone)" class="luxe-error" />
+                                </div>
+
+                                <div class="luxe-form-group">
+                                    <label>Дополнительно</label>
+                                    <InputTextArea @bind-Value="newShowing.Comments" class="luxe-textarea" rows="3" placeholder="Ваши вопросы или пожелания..." />
+                                </div>
+
+                                <button type="submit" class="btn-luxe-primary">
+                                    <span>Отправить заявку</span>
+                                    <i class="fas fa-paper-plane"></i>
+                                </button>
+                            </EditForm>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -147,33 +164,102 @@
     }
 </div>
 
+<style>
+    /* Основные переменные */
+    :root {
+        --brand-gold: #f39c12;
+        --brand-gold-hover: #e67e22;
+        --dark-bg: #121212;
+        --card-bg: #1c1c1c;
+        --input-bg: #252525;
+        --text-muted: #888;
+        --border-color: rgba(255, 255, 255, 0.08);
+    }
+
+    .page-wrapper-premium { background: var(--dark-bg); color: #fff; min-height: 100vh; padding: 40px 15px; font-family: 'Segoe UI', Roboto, sans-serif; }
+    .container-premium { max-width: 1280px; margin: 0 auto; }
+
+    /* Сетка */
+    .premium-grid { display: grid; grid-template-columns: 1fr 400px; gap: 30px; }
+    @@media (max-width: 1100px) { .premium-grid { grid-template-columns: 1fr; } }
+
+    /* Галерея */
+    .main-gallery-card { background: var(--card-bg); border-radius: 28px; padding: 12px; border: 1px solid var(--border-color); }
+    .featured-image-wrapper { position: relative; border-radius: 20px; overflow: hidden; height: 550px; }
+    .featured-image { width: 100%; height: 100%; object-fit: cover; transition: transform 0.5s ease; }
+    
+    .thumbnails-container { display: flex; gap: 12px; margin-top: 15px; padding: 0 5px 10px; overflow-x: auto; }
+    .thumb-item { width: 90px; height: 65px; border-radius: 12px; overflow: hidden; cursor: pointer; border: 2px solid transparent; opacity: 0.5; transition: 0.3s; flex-shrink: 0; }
+    .thumb-item.active { border-color: var(--brand-gold); opacity: 1; transform: translateY(-2px); }
+    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
+
+    /* Информация об объекте */
+    .property-info-card { background: var(--card-bg); border-radius: 28px; padding: 40px; border: 1px solid var(--border-color); }
+    .type-label { color: var(--brand-gold); text-transform: uppercase; font-size: 13px; font-weight: 700; letter-spacing: 1.5px; }
+    .property-address-title { font-size: 32px; font-weight: 800; margin: 10px 0 20px; }
+    .price-hero { font-size: 36px; font-weight: 800; color: #fff; }
+    .price-hero .currency { color: var(--brand-gold); margin-left: 5px; }
+
+    .specs-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 20px; margin: 35px 0; padding: 25px 0; border-top: 1px solid var(--border-color); border-bottom: 1px solid var(--border-color); }
+    .spec-item { display: flex; align-items: center; gap: 15px; }
+    .spec-icon-wrapper { width: 45px; height: 45px; background: rgba(243, 156, 18, 0.1); border-radius: 12px; display: flex; align-items: center; justify-content: center; color: var(--brand-gold); font-size: 18px; }
+    .spec-label { display: block; color: var(--text-muted); font-size: 12px; }
+    .spec-value { font-weight: 600; font-size: 16px; }
+
+    .description-block .block-title { font-size: 20px; font-weight: 700; margin-bottom: 15px; }
+    .description-content { color: #ccc; line-height: 1.8; font-size: 16px; }
+
+    /* Боковая панель и форма */
+    .sticky-sidebar { position: sticky; top: 30px; }
+    .booking-card-premium { background: var(--card-bg); border-radius: 28px; padding: 35px; border: 1px solid var(--border-color); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+    .booking-header { font-size: 22px; font-weight: 800; margin-bottom: 8px; }
+    .booking-subheader { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+
+    .luxe-form-group { margin-bottom: 18px; }
+    .luxe-form-group label { display: block; font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; letter-spacing: 0.5px; }
+    
+    .input-with-icon { position: relative; }
+    .input-with-icon i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--brand-gold); font-size: 14px; pointer-events: none; }
+
+    .luxe-input, .luxe-textarea { width: 100%; background: var(--input-bg); border: 1px solid #333; border-radius: 14px; padding: 14px 16px; color: #fff; transition: 0.3s; }
+    .luxe-input:focus, .luxe-textarea:focus { border-color: var(--brand-gold); outline: none; background: #2a2a2a; }
+    
+    .btn-luxe-primary { width: 100%; background: var(--brand-gold); color: #fff; border: none; border-radius: 14px; padding: 18px; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 10px; transition: 0.3s; cursor: pointer; margin-top: 10px; }
+    .btn-luxe-primary:hover { background: var(--brand-gold-hover); transform: translateY(-3px); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3); }
+
+    .status-badge-premium { position: absolute; top: 25px; left: 25px; padding: 8px 20px; border-radius: 50px; font-weight: 800; font-size: 12px; letter-spacing: 1px; backdrop-filter: blur(10px); background: rgba(0,0,0,0.7); color: #4ade80; border: 1px solid rgba(74, 222, 128, 0.4); }
+    .status-badge-premium.reserved { color: #f39c12; border-color: rgba(243, 156, 18, 0.4); }
+
+    .back-link { color: var(--text-muted); text-decoration: none; font-weight: 600; font-size: 14px; transition: 0.3s; }
+    .back-link:hover { color: var(--brand-gold); }
+</style>
 @code {
     [Parameter] public int Id { get; set; }
     private PropertyDto? property;
-    private ShowingRequest newShowing = new() { Date = DateTime.Today };
+    private string? selectedPhotoUrl;
+    private ShowingRequest newShowing = new();
 
     protected override async Task OnInitializedAsync()
     {
-        property = await Api.GetPropertyAsync(Id);
+        try
+        {
+            property = await Api.GetPropertyAsync(Id);
+            if (property?.PhotoUrls?.Any() == true)
+                selectedPhotoUrl = property.PhotoUrls.First();
+        }
+        catch { }
     }
 
     private async Task SubmitShowing()
     {
-        // Валидация времени в прошлом (если выбрана сегодняшняя дата)
-        if (newShowing.Date == DateTime.Today && newShowing.Time.HasValue)
-        {
-            if (newShowing.Time.Value < DateTime.Now.TimeOfDay)
-            {
-                await JsRuntime.InvokeVoidAsync("alert", "Упс! Нельзя записаться на время, которое уже прошло. Выберите более поздний час.");
-                return;
-            }
-        }
+        // Конвертируем TimeOnly в TimeSpan для API, если это необходимо
+        var timeSpan = new TimeSpan(newShowing.Time.Hour, newShowing.Time.Minute, 0);
 
         var request = new CreateShowingRequest
         {
             PropertyId = Id,
             Date = newShowing.Date ?? DateTime.Today,
-            Time = newShowing.Time,
+            Time = timeSpan, // Теперь типы совпадут
             ClientName = newShowing.ClientName,
             ClientPhone = newShowing.Phone,
             Comments = newShowing.Comments
@@ -182,31 +268,37 @@
         try
         {
             await Api.CreateShowingAsync(request);
-            await JsRuntime.InvokeVoidAsync("alert", "Заявка успешно отправлена! Мы свяжемся с вами в ближайшее время.");
-            newShowing = new ShowingRequest { Date = DateTime.Today };
+            await JsRuntime.InvokeVoidAsync("alert", "Заявка успешно отправлена!");
+            newShowing = new ShowingRequest();
         }
         catch (Exception ex)
         {
-            await JsRuntime.InvokeVoidAsync("alert", $"Ошибка при отправке: {ex.Message}");
+            await JsRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
         }
     }
+
+    string TranslateStatus(string? status) => status switch
+    {
+        "Available" => "ДОСТУПНО",
+        "Reserved" => "ЗАБРОНИРОВАНО",
+        "Sold" => "ПРОДАНО",
+        _ => status?.ToUpper() ?? "СТАТУС"
+    };
 
     public class ShowingRequest
     {
         [Required(ErrorMessage = "Выберите дату")]
         public DateTime? Date { get; set; } = DateTime.Today;
-
+        
         [Required(ErrorMessage = "Выберите время")]
-        public TimeSpan? Time { get; set; }
-
-        [Required(ErrorMessage = "Как вас зовут?")]
-        [StringLength(100, MinimumLength = 2, ErrorMessage = "Имя слишком короткое")]
+        public TimeOnly Time { get; set; } = TimeOnly.FromDateTime(DateTime.Now);
+        
+        [Required(ErrorMessage = "Укажите имя")]
         public string ClientName { get; set; } = "";
-
-        [Required(ErrorMessage = "Укажите номер телефона")]
-        [Phone(ErrorMessage = "Неверный формат телефона")]
+        
+        [Required(ErrorMessage = "Укажите телефон")]
         public string Phone { get; set; } = "";
-
+        
         public string? Comments { get; set; }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using AgencyRealEstate.API.Data;
 using AgencyRealEstate.API.Data.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 
@@ -7,6 +8,7 @@ namespace AgencyRealEstate.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "Administrator,Manager,Realtor")]
 public class ImagesController : ControllerBase
 {
     private readonly AppDbContext _context;
