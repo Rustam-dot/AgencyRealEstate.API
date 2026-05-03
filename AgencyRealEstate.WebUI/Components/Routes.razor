@@ -4,33 +4,43 @@
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
+            @* Добавляем AllowAnonymous к странице логина в самом компоненте Login.razor *@
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    @if (NavigationManager.Uri != $"{NavigationManager.BaseUri}login")
+                    @if (context.User.Identity?.IsAuthenticated == true)
                     {
-                        <div class="page-wrapper">
-                            <div class="alert alert-warning m-4" style="border-radius: 20px; background: #2d2d2d; color: white; border: 1px solid #444;">
-                                <p>Вы должны авторизоваться для доступа к этой странице.</p>
-                                <a href="/login" class="card-btn-pill" style="display: inline-block; width: auto; padding: 10px 30px;">Войти</a>
-                            </div>
+                        @* Пользователь вошел, но у него нет прав (например, риелтор лезет в админку) *@
+                        <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
+                             <h2>Доступ ограничен<span style="color: #f39c12;">.</span></h2>
+                             <p>У вашей учетной записи недостаточно привилегий.</p>
+                             <a href="/" class="card-btn-pill">Вернуться домой</a>
                         </div>
                     }
                     else
                     {
-                        <PageTitle>Вход</PageTitle>
-                        <Login />
+                        @* Пользователь НЕ вошел — просто отправляем на логин *@
+                        @* Важно: страница Login.razor должна иметь [AllowAnonymous] *@
+                        <RedirectToLogin />
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
         </Found>
         <NotFound>
-            <PageTitle>Страница не найдена</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
-                <div class="page-wrapper">
-                    <p role="alert" style="color: white;">Извините, такой страницы нет.</p>
+                <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
+                    <p role="alert">Извините, такой страницы нет.</p>
                 </div>
             </LayoutView>
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+    // Вспомогательный компонент для чистого редиректа
+    private class RedirectToLogin : ComponentBase
+    {
+        [Inject] protected NavigationManager Nav { get; set; } = default!;
+        protected override void OnInitialized() => Nav.NavigateTo("login");
+    }
+}

@@ -8,30 +8,31 @@
 
 <div class="admin-container">
     <div class="admin-content">
-        @* HEADER SECTION *@
+        @* ВЕРХНЯЯ ПАНЕЛЬ *@
         <div class="admin-header">
             <div class="header-text">
-                <h2 class="admin-title">Управление персоналом<span class="accent-dot">.</span></h2>
-                <p class="admin-subtitle">Контроль доступа и учетных записей сотрудников агентства</p>
+                <h2 class="admin-title">Команда Elite Estates<span class="accent-dot">.</span></h2>
+                <p class="admin-subtitle">Управление доступом и привилегиями сотрудников</p>
             </div>
             <button class="add-user-btn" @onclick="OpenAddModal">
-                <i class="fas fa-plus"></i> Добавить специалиста
+                <div class="btn-icon"><i class="fas fa-user-plus"></i></div>
+                <span>Новый сотрудник</span>
             </button>
         </div>
 
-        @* USERS DISPLAY *@
+        @* СЕТКА ПОЛЬЗОВАТЕЛЕЙ *@
         @if (users == null)
         {
-            <div class="loading-state">
-                <div class="spinner"></div>
-                <p>Синхронизация данных...</p>
+            <div class="loading-wrap">
+                <div class="luxury-spinner"></div>
+                <p>Загрузка данных...</p>
             </div>
         }
         else if (!users.Any())
         {
             <div class="empty-state">
                 <i class="fas fa-users-slash"></i>
-                <p>Пользователи не найдены</p>
+                <p>В штате пока нет сотрудников</p>
             </div>
         }
         else
@@ -40,20 +41,29 @@
                 @foreach (var user in users)
                 {
                     <div class="user-card" @onclick="() => OpenEditModal(user)">
-                        <div class="card-glow"></div>
-                        <div class="user-avatar-wrapper">
-                            <img src="https://ui-avatars.com/api/?name=@user.Login&background=3d3d3d&color=f39c12&bold=true&size=128" alt="Avatar" />
-                            <span class="status-indicator @(user.IsActive ? "online" : "offline")"></span>
-                        </div>
-                        <div class="user-details">
-                            <h4 class="user-name">@user.Login</h4>
-                            <p class="user-email">@user.Email</p>
-                            <div class="user-meta">
-                                <span class="role-badge @user.Role.ToLower()">@user.Role</span>
-                                <span class="date-info">@user.CreatedAt.ToString("dd MMM yyyy")</span>
+                        <div class="role-line @user.Role.ToLower()"></div>
+                        
+                        <div class="user-card-body">
+                            <div class="avatar-box">
+                                <img src="https://ui-avatars.com/api/?name=@user.Login&background=252525&color=f39c12&bold=true" alt="Avatar" />
+                                <div class="status-ring @(user.IsActive ? "active" : "blocked")"></div>
+                            </div>
+                            
+                            <div class="info-box">
+                                <h4 class="login-name">@user.Login</h4>
+                                <p class="email-text">@user.Email</p>
+                                
+                                <div class="tags-row">
+                                    <span class="badge-role @user.Role.ToLower()">@user.Role</span>
+                                    <span class="badge-date"><i class="far fa-calendar-alt"></i> @user.CreatedAt.ToString("dd.MM.yyyy")</span>
+                                </div>
                             </div>
                         </div>
-                        <div class="card-action-hint">Нажмите для редактирования</div>
+                        
+                        <div class="card-footer">
+                            <span>ID: #@user.UserId</span>
+                            <span class="edit-link">Настроить <i class="fas fa-chevron-right"></i></span>
+                        </div>
                     </div>
                 }
             </div>
@@ -61,116 +71,85 @@
     </div>
 </div>
 
-@* MODAL: ADD / EDIT *@
+@* МОДАЛЬНОЕ ОКНО (ОБЩЕЕ ДЛЯ ДОБАВЛЕНИЯ И ПРАВКИ) *@
 @if (selectedUser != null || isAdding)
 {
-    <div class="modal-overlay" @onclick="CloseModals">
-        <div class="modal-window" @onclick:stopPropagation="true">
-            <div class="modal-header">
-                <h3>@(isAdding ? "Новый сотрудник" : "Профиль специалиста")</h3>
-                <button class="close-modal-btn" @onclick="CloseModals">&times;</button>
+    <div class="modal-backdrop" @onclick="CloseModals">
+        <div class="luxury-modal" @onclick:stopPropagation="true">
+            <div class="modal-top">
+                <h3>@(isAdding ? "Регистрация специалиста" : "Параметры доступа")</h3>
+                <button class="close-x" @onclick="CloseModals">&times;</button>
             </div>
 
-            <div class="modal-body">
+            <div class="modal-main">
                 @if (isAdding)
                 {
                     <EditForm Model="addModel" OnValidSubmit="CreateUser">
                         <DataAnnotationsValidator />
-                       @* Пример для окна "Новый сотрудник" *@
-<div class="elite-form-grid">
-    <div class="input-container">
-        <label class="elite-label">Логин</label>
-        <div class="input-wrapper">
-            <i class="fas fa-user input-icon"></i>
-            <InputText @bind-Value="addModel.Login" class="elite-input" placeholder="admin" />
-        </div>
-        <ValidationMessage For="@(() => addModel.Login)" class="error-msg" />
-    </div>
+                        <div class="elite-form">
+                            <div class="input-group">
+                                <label>Логин в системе</label>
+                                <InputText @bind-Value="addModel.Login" class="luxury-input" placeholder="Введите логин..." />
+                                <ValidationMessage For="@(() => addModel.Login)" class="val-msg" />
+                            </div>
 
-    <div class="input-container">
-        <label class="elite-label">Email</label>
-        <div class="input-wrapper">
-            <i class="fas fa-envelope input-icon"></i>
-            <InputText @bind-Value="addModel.Email" class="elite-input" placeholder="example@estate.ru" />
-        </div>
-        <ValidationMessage For="@(() => addModel.Email)" class="error-msg" />
-    </div>
+                            <div class="input-group">
+                                <label>Электронная почта</label>
+                                <InputText @bind-Value="addModel.Email" class="luxury-input" placeholder="email@elite.ru" />
+                            </div>
 
-    <div class="input-container">
-        <label class="elite-label">Пароль</label>
-        <div class="input-wrapper">
-            <i class="fas fa-lock input-icon"></i>
-            <InputText @bind-Value="addModel.Password" type="password" class="elite-input" placeholder="•••••" />
-        </div>
-    </div>
+                            <div class="input-group">
+                                <label>Временный пароль</label>
+                                <InputText @bind-Value="addModel.Password" type="password" class="luxury-input" placeholder="••••••••" />
+                            </div>
 
-    <div class="input-container">
-        <label class="elite-label">Роль в системе</label>
-        <div class="input-wrapper">
-            <i class="fas fa-shield-alt input-icon"></i>
-            <select @bind="addModel.RoleId" class="elite-input elite-select">
-                <option value="" disabled selected>Выберите роль</option>
-                <option value="1">Администратор</option>
-                <option value="2">Менеджер</option>
-                <option value="3">Риелтор</option>
-            </select>
-        </div>
-    </div>
-</div>
-                        <div class="modal-footer">
-                            <button type="submit" class="btn-prime">Создать аккаунт</button>
+                            <div class="input-group">
+                                <label>Должность</label>
+                                <select @bind="addModel.RoleId" class="luxury-input">
+                                    <option value="" disabled selected>Выберите роль</option>
+                                    <option value="1">Администратор</option>
+                                    <option value="2">Менеджер</option>
+                                    <option value="3">Риелтор</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="modal-actions">
+                            <button type="submit" class="save-btn">Активировать аккаунт</button>
                         </div>
                     </EditForm>
                 }
                 else if (selectedUser != null)
                 {
-                    <div class="user-profile-view">
-    @* Верхняя часть: Аватар и статус *@
-    <div class="profile-header-elite">
-        <div class="avatar-big">
-            <span>@(selectedUser.Login.Substring(0, 2).ToUpper())</span>
-        </div>
-        <div class="profile-main-info">
-            <h4 class="profile-login">@selectedUser.Login</h4>
-            <p class="profile-email">@selectedUser.Email</p>
-            <div class="status-badge-container">
-                <span class="status-dot @(selectedUser.IsActive ? "active" : "inactive")"></span>
-                <span class="status-text">@(selectedUser.IsActive ? "Доступ разрешен" : "Доступ ограничен")</span>
-            </div>
-        </div>
-    </div>
+                    <div class="edit-profile-layout">
+                        <div class="profile-preview">
+                            <div class="avatar-large">@selectedUser.Login.Substring(0, 1).ToUpper()</div>
+                            <div class="profile-status">
+                                <span class="status-pill @(selectedUser.IsActive ? "ok" : "warn")">
+                                    @(selectedUser.IsActive ? "Доступ открыт" : "Заблокирован")
+                                </span>
+                            </div>
+                        </div>
 
-    @* Форма редактирования *@
-    <EditForm Model="editModel" OnValidSubmit="SaveChanges">
-        <div class="elite-form-vertical">
-            <div class="input-container">
-                <label class="elite-label">Изменить логин</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-user-edit input-icon"></i>
-                    <InputText @bind-Value="editModel.NewLogin" class="elite-input" placeholder="Введите новый логин" />
-                </div>
-            </div>
+                        <EditForm Model="editModel" OnValidSubmit="SaveChanges">
+                            <div class="elite-form">
+                                <div class="input-group">
+                                    <label>Обновить логин</label>
+                                    <InputText @bind-Value="editModel.NewLogin" class="luxury-input" />
+                                </div>
+                                <div class="input-group">
+                                    <label>Новый пароль (если требуется)</label>
+                                    <InputText @bind-Value="editModel.NewPassword" type="password" class="luxury-input" />
+                                </div>
+                            </div>
 
-            <div class="input-container">
-                <label class="elite-label">Новый пароль (оставьте пустым, если не меняете)</label>
-                <div class="input-wrapper">
-                    <i class="fas fa-key input-icon"></i>
-                    <InputText @bind-Value="editModel.NewPassword" type="password" class="elite-input" placeholder="••••••••" />
-                </div>
-            </div>
-        </div>
-
-        <div class="modal-divider"></div>
-
-        @* Кнопки действий *@
-        <div class="modal-footer-elite">
-            <button type="button" class="btn-block-elite" @onclick="() => ToggleActive(selectedUser)">
-                @(selectedUser.IsActive ? "Заблокировать" : "Разблокировать")
-            </button>
-            <button type="submit" class="btn-save-elite">Сохранить изменения</button>
-        </div>
-    </EditForm>
-</div>
+                            <div class="modal-actions-between">
+                                <button type="button" class="block-btn" @onclick="() => ToggleActive(selectedUser)">
+                                    @(selectedUser.IsActive ? "Заблокировать" : "Разблокировать")
+                                </button>
+                                <button type="submit" class="save-btn">Применить</button>
+                            </div>
+                        </EditForm>
+                    </div>
                 }
             </div>
         </div>
@@ -178,342 +157,188 @@
 }
 
 <style>
-    /* ОБЩИЙ КОНТЕЙНЕР */
-    .admin-container {
-        background: #121212;
-        min-height: 100vh;
-        color: #fff;
-        padding-top: 100px; /* Отступ под фиксированный NavMenu */
-        font-family: 'Inter', sans-serif;
+    :root {
+        --accent: #f39c12;
+        --bg: #0f0f0f;
+        --card-bg: #1a1a1a;
+        --text-dim: #888;
+        --admin-color: #f39c12;
+        --manager-color: #3498db;
+        --realtor-color: #2ecc71;
     }
 
-    .admin-content {
-        max-width: 1300px;
-        margin: 0 auto;
-        padding: 0 30px;
+    .admin-container {
+        background: var(--bg);
+        min-height: 100vh;
+        padding-top: 120px;
+        color: #fff;
     }
+
+    .admin-content { max-width: 1400px; margin: 0 auto; padding: 0 40px; }
 
     /* HEADER */
     .admin-header {
         display: flex;
         justify-content: space-between;
-        align-items: flex-end;
-        margin-bottom: 50px;
+        align-items: center;
+        margin-bottom: 60px;
     }
-
-    .admin-title { font-size: 2.2rem; font-weight: 800; margin: 0; }
-    .accent-dot { color: #f39c12; }
-    .admin-subtitle { color: #888; margin: 5px 0 0 0; font-size: 1.1rem; }
+    .admin-title { font-size: 2.5rem; font-weight: 800; margin: 0; }
+    .accent-dot { color: var(--accent); }
+    .admin-subtitle { color: var(--text-dim); margin-top: 10px; font-size: 1.1rem; }
 
     .add-user-btn {
-        background: #f39c12;
-        color: #000;
+        background: var(--accent);
         border: none;
-        padding: 14px 28px;
+        padding: 5px 25px 5px 5px;
         border-radius: 12px;
-        font-weight: 700;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2);
-    }
-
-    .add-user-btn:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 15px 30px rgba(243, 156, 18, 0.3);
-        background: #ffac2f;
-    }
-
-    /* GRID & CARDS */
-    .users-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-        gap: 25px;
-        padding-bottom: 50px;
-    }
-
-    .user-card {
-        background: #1e1e1e;
-        border: 1px solid rgba(255, 255, 255, 0.05);
-        border-radius: 20px;
-        padding: 30px;
-        position: relative;
-        overflow: hidden;
-        cursor: pointer;
-        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    }
-
-    .user-card:hover {
-        transform: translateY(-10px);
-        border-color: rgba(243, 156, 18, 0.4);
-        background: #252525;
-    }
-
-    .card-glow {
-        position: absolute;
-        top: 0; right: 0;
-        width: 100px; height: 100px;
-        background: radial-gradient(circle, rgba(243, 156, 18, 0.1) 0%, transparent 70%);
-        pointer-events: none;
-    }
-
-    .user-avatar-wrapper {
-        position: relative;
-        width: 80px;
-        height: 80px;
-        margin-bottom: 20px;
-    }
-
-    .user-avatar-wrapper img {
-        width: 100%; height: 100%;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid #333;
-    }
-
-    .status-indicator {
-        position: absolute;
-        bottom: 5px; right: 5px;
-        width: 16px; height: 16px;
-        border-radius: 50%;
-        border: 3px solid #1e1e1e;
-    }
-    .status-indicator.online { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
-    .status-indicator.offline { background: #e74c3c; }
-
-    .user-name { font-size: 1.3rem; font-weight: 700; margin-bottom: 5px; }
-    .user-email { color: #777; font-size: 0.9rem; margin-bottom: 20px; }
-
-    .user-meta {
         display: flex;
-        justify-content: space-between;
         align-items: center;
-        border-top: 1px solid rgba(255, 255, 255, 0.05);
-        padding-top: 15px;
+        gap: 15px;
+        cursor: pointer;
+        font-weight: 700;
+        transition: 0.3s;
     }
-
-    .role-badge {
-        padding: 5px 12px;
-        border-radius: 6px;
-        font-size: 0.75rem;
-        font-weight: 800;
-        text-transform: uppercase;
-        background: rgba(255, 255, 255, 0.05);
-        color: #bbb;
-    }
-    .role-badge.administrator { color: #f39c12; background: rgba(243, 156, 18, 0.1); }
-    .role-badge.manager { color: #3498db; background: rgba(52, 152, 219, 0.1); }
-    
-    .date-info { font-size: 0.8rem; color: #555; }
-
-    .card-action-hint {
-        position: absolute;
-        bottom: -30px; left: 0; width: 100%;
-        background: #f39c12; color: #000;
-        text-align: center; font-size: 0.75rem; font-weight: 700;
-        padding: 5px 0;
-        transition: bottom 0.3s;
-    }
-    .user-card:hover .card-action-hint { bottom: 0; }
-
-    /* MODALS */
-    .modal-overlay {
-        position: fixed;
-        top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.8);
-        backdrop-filter: blur(10px);
+    .btn-icon {
+        background: rgba(0,0,0,0.15);
+        width: 45px; height: 45px;
+        border-radius: 10px;
         display: flex;
         align-items: center;
         justify-content: center;
-        z-index: 20000;
-        padding: 20px;
+    }
+    .add-user-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2); }
+
+    /* USERS GRID */
+    .users-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 30px;
     }
 
-    .modal-window {
-        background: #1e1e1e;
-        width: 100%;
-        max-width: 600px;
-        border-radius: 24px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 50px 100px rgba(0,0,0,0.5);
+    .user-card {
+        background: var(--card-bg);
+        border-radius: 20px;
         overflow: hidden;
-        animation: modalEntry 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+        border: 1px solid rgba(255,255,255,0.03);
+        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        cursor: pointer;
+        position: relative;
+    }
+    .user-card:hover {
+        transform: translateY(-8px);
+        border-color: rgba(243, 156, 18, 0.3);
+        background: #222;
     }
 
-    @@keyframes modalEntry {
-        from { transform: scale(0.9) translateY(30px); opacity: 0; }
-        to { transform: scale(1) translateY(0); opacity: 1; }
-    }
+    .role-line { height: 4px; width: 100%; }
+    .role-line.administrator { background: var(--admin-color); }
+    .role-line.manager { background: var(--manager-color); }
+    .role-line.realtor { background: var(--realtor-color); }
 
-    .modal-header {
-        padding: 25px 30px;
+    .user-card-body { padding: 30px; display: flex; gap: 20px; }
+
+    .avatar-box { position: relative; width: 70px; height: 70px; }
+    .avatar-box img { width: 100%; border-radius: 15px; border: 2px solid #333; }
+    
+    .status-ring {
+        position: absolute; bottom: -5px; right: -5px;
+        width: 18px; height: 18px; border-radius: 50%;
+        border: 3px solid var(--card-bg);
+    }
+    .status-ring.active { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+    .status-ring.blocked { background: #e74c3c; }
+
+    .login-name { margin: 0; font-size: 1.2rem; font-weight: 700; }
+    .email-text { color: var(--text-dim); font-size: 0.9rem; margin: 5px 0 15px 0; }
+
+    .tags-row { display: flex; gap: 10px; }
+    .badge-role {
+        padding: 4px 10px; border-radius: 6px; font-size: 0.7rem;
+        font-weight: 800; text-transform: uppercase;
+    }
+    .badge-role.administrator { background: rgba(243, 156, 18, 0.1); color: var(--admin-color); }
+    .badge-role.manager { background: rgba(52, 152, 219, 0.1); color: var(--manager-color); }
+    .badge-role.realtor { background: rgba(46, 204, 113, 0.1); color: var(--realtor-color); }
+
+    .badge-date { font-size: 0.8rem; color: #555; display: flex; align-items: center; gap: 5px; }
+
+    .card-footer {
+        background: rgba(0,0,0,0.2);
+        padding: 15px 30px;
         display: flex;
         justify-content: space-between;
-        align-items: center;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        font-size: 0.8rem;
+        color: #555;
+    }
+    .edit-link { color: var(--accent); font-weight: 600; }
+
+    /* MODALS */
+    .modal-backdrop {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+        display: flex; align-items: center; justify-content: center; z-index: 10001;
     }
 
-    .modal-header h3 { margin: 0; font-size: 1.4rem; color: #f39c12; }
-    .close-modal-btn { background: none; border: none; color: #555; font-size: 2rem; cursor: pointer; }
+    .luxury-modal {
+        background: #181818; width: 100%; max-width: 550px;
+        border-radius: 24px; border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 40px 100px rgba(0,0,0,0.8);
+        animation: slideUp 0.4s ease-out;
+    }
 
-    .modal-body { padding: 30px; }
+    @@keyframes slideUp {
+        from { transform: translateY(30px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
+    }
 
-    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .modal-top { padding: 30px; display: flex; justify-content: space-between; border-bottom: 1px solid #222; }
+    .modal-top h3 { margin: 0; color: var(--accent); }
+    .close-x { background: none; border: none; color: #444; font-size: 1.8rem; cursor: pointer; }
+
+    .modal-main { padding: 30px; }
+
+    .input-group { margin-bottom: 20px; }
+    .input-group label { display: block; color: #666; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
     
-    .input-group { display: flex; flex-direction: column; gap: 8px; margin-bottom: 15px; }
-    .input-group label { font-size: 0.85rem; color: #888; font-weight: 600; }
-
-    .elite-input {
-        background: #2a2a2a;
-        border: 1px solid #3d3d3d;
-        color: #fff;
-        padding: 12px 16px;
-        border-radius: 10px;
-        transition: all 0.3s;
+    .luxury-input {
+        width: 100%; background: #222; border: 1px solid #333;
+        padding: 14px 18px; border-radius: 12px; color: #fff;
+        transition: 0.3s;
     }
-    .elite-input:focus { border-color: #f39c12; outline: none; box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1); }
+    .luxury-input:focus { border-color: var(--accent); outline: none; background: #282828; }
 
-    .modal-footer {
-        margin-top: 30px;
-        display: flex;
-        gap: 15px;
-        justify-content: flex-end;
+    .save-btn {
+        background: var(--accent); color: #000; border: none;
+        padding: 14px 40px; border-radius: 12px; font-weight: 800; cursor: pointer;
     }
-
-    .btn-prime {
-        background: #f39c12; color: #000; font-weight: 700;
-        padding: 12px 30px; border-radius: 10px; border: none; cursor: pointer;
-    }
-
-    .btn-outline {
+    
+    .block-btn {
         background: transparent; border: 1px solid #e74c3c; color: #e74c3c;
-        padding: 12px 25px; border-radius: 10px; font-weight: 600; cursor: pointer;
+        padding: 12px 25px; border-radius: 12px; font-weight: 600; cursor: pointer;
     }
 
-    .btn-outline:hover { background: #e74c3c; color: #fff; }
+    .modal-actions-between { display: flex; justify-content: space-between; gap: 20px; margin-top: 30px; }
+    
+    .edit-profile-layout { display: flex; flex-direction: column; gap: 30px; }
+    .profile-preview { display: flex; align-items: center; gap: 20px; }
+    .avatar-large { width: 80px; height: 80px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: #000; }
+    
+    .status-pill { padding: 6px 15px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
+    .status-pill.ok { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+    .status-pill.warn { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
 
-    /* LOADING SPINNER */
-    .loading-state { text-align: center; padding: 100px 0; }
-    .spinner {
-        width: 50px; height: 50px; border: 3px solid rgba(243, 156, 18, 0.1);
-        border-top-color: #f39c12; border-radius: 50%;
+    .luxury-spinner {
+        width: 40px; height: 40px; border: 3px solid rgba(243, 156, 18, 0.1);
+        border-top-color: var(--accent); border-radius: 50%;
         animation: spin 1s linear infinite; margin: 0 auto 20px;
     }
-    .profile-header-elite {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    margin-bottom: 30px;
-}
-.avatar-big {
-    width: 100px;
-    height: 100px;
-    background: #f39c12;
-    border-radius: 4px; /* Квадратный со скруглением как на фото */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 2.5rem;
-    font-weight: 700;
-    color: #fff;
-}
-.profile-login { font-size: 1.8rem; margin: 0; color: #fff; }
-.profile-email { color: #888; margin: 5px 0; }
-.status-badge-container {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-.status-text {
-    font-size: 0.85rem;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #fff;
-}
-
-/* ФОРМА (Вертикальная) */
-.elite-form-vertical {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-/* ИСПРАВЛЕНИЕ: Отступы для текста, чтобы не было наслоения на иконки */
-.input-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-icon {
-    position: absolute;
-    left: 16px;
-    color: #555;
-    z-index: 2;
-}
-
-.elite-input {
-    width: 100%;
-    background: #242424;
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 14px 16px 14px 45px; /* 45px слева дают место для иконки */
-    color: #fff;
-    transition: all 0.3s;
-}
-
-.elite-input:focus {
-    border-color: #f39c12;
-    background: #2a2a2a;
-    outline: none;
-}
-
-/* Футер и кнопки */
-.modal-divider {
-    height: 1px;
-    background: rgba(255, 255, 255, 0.1);
-    margin: 25px 0;
-}
-
-.modal-footer-elite {
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
-}
-
-.btn-save-elite {
-    background: #f39c12;
-    color: #000;
-    border: none;
-    padding: 12px 30px;
-    border-radius: 10px;
-    font-weight: 700;
-    cursor: pointer;
-    flex-grow: 1;
-}
-
-.btn-block-elite {
-    background: transparent;
-    border: 1px solid #e74c3c;
-    color: #e74c3c;
-    padding: 12px 30px;
-    border-radius: 10px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.3s;
-}
-
-.btn-block-elite:hover {
-    background: rgba(231, 76, 60, 0.1);
-}
     @@keyframes spin { to { transform: rotate(360deg); } }
 </style>
 
 @code {
     private List<UserDto>? users;
     private UserDto? selectedUser;
-    private bool isEditing = false;
     private bool isAdding = false;
     private UpdateUserRequest editModel = new();
     private AddUserRequest addModel = new();
@@ -527,6 +352,8 @@
     {
         try
         {
+            // Имитация задержки для демонстрации спиннера
+            await Task.Delay(500); 
             users = await Http.GetFromJsonAsync<List<UserDto>>("admin/users");
         }
         catch { users = new List<UserDto>(); }
@@ -555,16 +382,12 @@
     private async Task SaveChanges()
     {
         if (selectedUser == null) return;
-        try
+        var response = await Http.PutAsJsonAsync($"admin/users/{selectedUser.UserId}", editModel);
+        if (response.IsSuccessStatusCode)
         {
-            var response = await Http.PutAsJsonAsync($"admin/users/{selectedUser.UserId}", editModel);
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadUsers();
-                CloseModals();
-            }
+            await LoadUsers();
+            CloseModals();
         }
-        catch { }
     }
 
     private async Task ToggleActive(UserDto user)
@@ -577,19 +400,14 @@
 
     private async Task CreateUser()
     {
-        try
+        var response = await Http.PostAsJsonAsync("admin/users", addModel);
+        if (response.IsSuccessStatusCode)
         {
-            var response = await Http.PostAsJsonAsync("admin/users", addModel);
-            if (response.IsSuccessStatusCode)
-            {
-                await LoadUsers();
-                CloseModals();
-            }
+            await LoadUsers();
+            CloseModals();
         }
-        catch { }
     }
 
-    // DTO CLASSES
     public class UserDto
     {
         public int UserId { get; set; }
@@ -609,9 +427,12 @@
 
     public class AddUserRequest
     {
-        [Required] public string Login { get; set; } = "";
-        [Required] public string Password { get; set; } = "";
-        [Required, EmailAddress] public string Email { get; set; } = "";
+        [Required(ErrorMessage = "Логин обязателен")]
+        public string Login { get; set; } = "";
+        [Required(ErrorMessage = "Пароль обязателен")]
+        public string Password { get; set; } = "";
+        [EmailAddress]
+        public string Email { get; set; } = "";
         public int? RoleId { get; set; }
     }
 }

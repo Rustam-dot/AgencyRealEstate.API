@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AgencyRealEstate.API.Controllers;
 
-[Authorize(Roles = "Administrator,Manager,Realtor")]
+[Authorize(Roles = "Administrator,Manager,Realtor,Client")]
 [ApiController]
 [Route("api/[controller]")]
 public class PropertiesController : ControllerBase

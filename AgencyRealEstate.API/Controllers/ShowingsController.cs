@@ -11,7 +11,7 @@ namespace AgencyRealEstate.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrator,Manager,Realtor")]
+[Authorize(Roles = "Administrator,Manager,Realtor,Client")]
 public class ShowingsController : ControllerBase
 {
     private readonly AppDbContext _context;

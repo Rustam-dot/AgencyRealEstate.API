@@ -10,6 +10,7 @@
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthStateProvider
 @inject IJSRuntime JS
+@attribute [AllowAnonymous]
 
 <div class="page-background-premium">
     <div class="container-form-luxe">
@@ -116,8 +117,15 @@
     </div>
 </div>
 
+        <div class="drops">
+            <div class="drop-glass drop-1"></div>
+            <div class="drop-glass drop-2"></div>
+            <div class="drop-glass drop-3"></div>
+            <div class="drop-glass drop-4"></div>
+            <div class="drop-glass drop-5"></div>
+        </div>
+
 <style>
-    /* --- ОСНОВНОЙ ФОН --- */
     .page-background-premium {
         background-color: #1a1a1a;
         min-height: 100vh;
@@ -138,7 +146,6 @@
         padding: 20px;
     }
 
-    /* --- ЗАГОЛОВКИ --- */
     .header-titles {
         text-align: center;
         margin-bottom: 30px;
@@ -155,7 +162,7 @@
     }
     
     .accent-dot {
-        color: #f39c12; /* Фирменный оранжевый */
+        color: #f39c12;
     }
 
     .header-titles p {
@@ -165,7 +172,6 @@
         font-weight: 500;
     }
 
-    /* --- КАРТОЧКА ФОРМЫ --- */
     .form-luxe-card {
         background: #242424;
         padding: 40px;
@@ -176,7 +182,6 @@
         z-index: 2;
     }
 
-    /* --- ПЕРЕКЛЮЧАТЕЛЬ (ТОГГЛ) --- */
     .toggle-wrapper {
         display: flex;
         position: relative;
@@ -211,7 +216,7 @@
         left: 5px;
         width: calc(50% - 5px);
         height: calc(100% - 10px);
-        background: #f39c12; /* Оранжевый акцент */
+        background: #f39c12;
         border-radius: 12px;
         transition: transform 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
         z-index: 1;
@@ -222,7 +227,6 @@
         transform: translateX(100%);
     }
 
-    /* --- АНИМАЦИИ --- */
     .fade-in-form {
         animation: fadeIn 0.4s ease-in-out;
     }
@@ -240,7 +244,6 @@
         letter-spacing: -0.3px;
     }
 
-    /* --- ИНПУТЫ --- */
     .form-group {
         margin-bottom: 18px;
     }
@@ -268,7 +271,6 @@
         box-shadow: 0 0 0 3px rgba(243, 156, 18, 0.1);
     }
 
-    /* --- ВАЛИДАЦИЯ --- */
     .validation-msg {
         color: #e74c3c;
         font-size: 0.8rem;
@@ -277,7 +279,6 @@
         margin-left: 5px;
     }
 
-    /* --- КНОПКИ И ССЫЛКИ --- */
     .bottom-row {
         display: flex;
         align-items: center;
@@ -320,7 +321,6 @@
         color: #f39c12;
     }
 
-    /* --- АЛЕРТЫ --- */
     .alert-msg {
         margin-top: 20px;
         padding: 12px 15px;
@@ -344,7 +344,6 @@
         border: 1px solid rgba(74, 222, 128, 0.2);
     }
 
-    /* --- ПЛАВАЮЩИЕ ЭЛЕМЕНТЫ (GLASSMORPHISM) --- */
     .drops {
         position: absolute;
         top: 0;
@@ -380,7 +379,6 @@
     .drop-4 { height: 60px; width: 60px; top: -10px; right: 20%; animation: float2 9s ease-in-out infinite; border-radius: 50%; }
     .drop-5 { height: 90px; width: 90px; bottom: 20%; left: -60px; animation: float1 11s ease-in-out infinite; }
 
-    /* Адаптивность */
     @@media (max-width: 576px) {
         .form-luxe-card {
             padding: 30px 20px;
@@ -389,7 +387,7 @@
             font-size: 2rem;
         }
         .drop-glass {
-            display: none; /* Скрываем декор на мобильных для чистоты */
+            display: none;
         }
     }
 </style>
@@ -430,6 +428,15 @@
         public string Password { get; set; } = "";
     }
 
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        if (authState.User.Identity?.IsAuthenticated == true)
+        {
+            Navigation.NavigateTo("/", forceLoad: false);
+        }
+    }
+
     private async Task HandleLogin()
     {
         errorMessage = null;
@@ -441,9 +448,18 @@
                 var result = await response.Content.ReadFromJsonAsync<LoginResponse>();
                 if (result != null)
                 {
+                    // 1. Сохраняем в куки (для будущих посещений)
                     await JS.InvokeVoidAsync("eval", $"document.cookie = 'authToken={result.Token}; path=/; secure; samesite=strict; max-age=86400'");
+                    
+                    // 2. СРАЗУ сохраняем в TokenStorage (чтобы текущая сессия увидела токен без перезагрузки)
+                    TokenStorage.Token = result.Token;
+                    
+                    // 3. Уведомляем систему авторизации
                     ((TokenAuthenticationStateProvider)AuthStateProvider).NotifyAuthStateChanged();
-                    Navigation.NavigateTo("/", forceLoad: true);
+                    
+                    // 4. Мягко переходим на главную. 
+                    // forceLoad: false критически важен, чтобы избежать цикла редиректов!
+                    Navigation.NavigateTo("/", forceLoad: false); 
                 }
                 else
                 {
@@ -473,8 +489,8 @@
             if (response.IsSuccessStatusCode)
             {
                 successMessage = "Регистрация прошла успешно! Теперь вы можете войти.";
-                isLogin = true; // переключаем на вход
-                registerModel = new RegisterRequest(); // очищаем поля
+                isLogin = true;
+                registerModel = new RegisterRequest();
             }
             else
             {
@@ -486,5 +502,10 @@
         {
             errorMessage = $"Ошибка соединения: {ex.Message}";
         }
+    }
+
+    public class LoginResponse 
+    {
+        public string Token { get; set; } = string.Empty;
     }
 }

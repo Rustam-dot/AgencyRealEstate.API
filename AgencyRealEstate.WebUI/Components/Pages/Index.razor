@@ -2,31 +2,52 @@
 @rendermode InteractiveServer
 @using AgencyRealEstate.WebUI.Services
 @using AgencyRealEstate.WebUI.Models
+@using Microsoft.AspNetCore.Components.Authorization
 @inject ApiClient ApiClient
 @inject NavigationManager Navigation
 @attribute [Authorize]
+
 <div class="main-container">
     <section class="hero-block">
         <div class="hero-overlay"></div>
         <div class="hero-content">
-            <h1 class="fade-in">Эксклюзивная недвижимость</h1>
-            <p class="fade-in-delay">Найдите идеальное место для жизни в Elite Estates</p>
             
-            <div class="search-bar-premium">
-                <input type="text" placeholder="Город, район или ЖК..." @bind="searchQuery" @onkeydown="OnKeyDown" />
-                <button class="search-btn" @onclick="Search"><i class="fas fa-search"></i> Найти</button>
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-badge fade-in">
+                        <span class="status-dot"></span>
+                        Добро пожаловать, <span class="user-name">@context.User.Identity?.Name</span>
+                    </div>
+                </Authorized>
+            </AuthorizeView>
+
+            <h1 class="hero-title fade-in">Эксклюзивная <br/><span>недвижимость</span></h1>
+            <p class="hero-subtitle fade-in-delay">Найдите идеальное место для жизни в Elite Estates</p>
+            
+            <div class="search-bar-premium fade-in-delay">
+                <div class="search-input-wrapper">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <input type="text" placeholder="Город, район или ЖК..." @bind="searchQuery" @onkeydown="OnKeyDown" />
+                </div>
+                <button class="search-btn" @onclick="Search">
+                    <span>Найти</span>
+                    <i class="fas fa-search"></i>
+                </button>
             </div>
         </div>
     </section>
 
     <div class="page-wrapper">
         <div class="section-header">
-            <h2 class="section-title">Популярные объекты</h2>
+            <div class="title-area">
+                <h2 class="section-title">Популярные объекты</h2>
+                <div class="section-line"></div>
+            </div>
             <div class="filter-pills">
                 <span class="pill @(selectedType == null ? "active" : "")" @onclick='() => FilterByType(null)'>Все</span>
                 <span class="pill @(selectedType == "Apartment" ? "active" : "")" @onclick='() => FilterByType("Apartment")'>Квартиры</span>
                 <span class="pill @(selectedType == "House" ? "active" : "")" @onclick='() => FilterByType("House")'>Дома</span>
-                <span class="pill @(selectedType == "Land" ? "active" : "")" @onclick='() => FilterByType("Land")'>Участки</span>
+                <span class="pill @(selectedType == "Land" ? "active" : "")" @onclick='() => FilterByType("Land")'>Офисы</span>
             </div>
         </div>
 
@@ -35,12 +56,19 @@
             {
                 @for (int i = 0; i < 6; i++)
                 {
-                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-img"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text short"></div>
+                    </div>
                 }
             }
             else if (!popularProperties.Any())
             {
-                <div class="empty-state">По вашему запросу ничего не найдено.</div>
+                <div class="empty-state">
+                    <i class="fas fa-search-minus"></i>
+                    <p>По вашему запросу ничего не найдено.</p>
+                </div>
             }
             else
             {
@@ -50,7 +78,7 @@
                         <div class="card-image-box">
                             @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
                             {
-                                <img src="@prop.PhotoUrls.First()" alt="Фото" />
+                                <img src="@prop.PhotoUrls.First()" alt="Property" />
                             }
                             else
                             {
@@ -58,20 +86,23 @@
                                     <i class="fas fa-image"></i>
                                 </div>
                             }
+                            <div class="card-tag">@prop.PropertyTypeName</div>
                         </div>
                         <div class="card-body-luxury">
-                            <div class="card-category">@prop.PropertyTypeName</div>
                             <h3 class="card-address-title">@prop.Address</h3>
                             
                             <div class="card-specs">
-                                <span><i class="fas fa-bed"></i> @prop.Rooms к.</span>
-                                <span><i class="fas fa-ruler-combined"></i> @prop.TotalArea м²</span>
+                                <div class="spec-item"><i class="fas fa-bed"></i> <span>@prop.Rooms к.</span></div>
+                                <div class="spec-item"><i class="fas fa-ruler-combined"></i> <span>@prop.TotalArea м²</span></div>
                             </div>
 
                             <div class="card-footer">
-                                <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
+                                <div class="price-container">
+                                    <span class="price-label">Стоимость</span>
+                                    <div class="card-price-tag">@prop.Price?.ToString("N0") <span class="currency">₽</span></div>
+                                </div>
                                 <a href="/property/@prop.PropertyID" class="btn-view-circle">
-                                    <i class="fas fa-arrow-right"></i>
+                                    <i class="fas fa-chevron-right"></i>
                                 </a>
                             </div>
                         </div>
@@ -81,6 +112,140 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* ГЛОБАЛЬНЫЕ КОНТЕЙНЕРЫ */
+    .main-container { background: #121212; min-height: 100vh; color: #fff; }
+    .page-wrapper { max-width: 1400px; margin: 0 auto; padding: 80px 40px; }
+
+    /* HERO SECTION */
+    .hero-block {
+        height: 80vh;
+        min-height: 600px;
+        position: relative;
+        background: url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?q=80&w=2070&auto=format&fit=crop') center/cover no-repeat;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .hero-overlay {
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, rgba(18,18,18,0.7) 0%, rgba(18,18,18,0.9) 100%);
+    }
+
+    .hero-content { position: relative; z-index: 5; max-width: 800px; padding: 0 20px; }
+
+    /* WELCOME BADGE */
+    .user-badge {
+        display: inline-flex;
+        align-items: center;
+        background: rgba(243, 156, 18, 0.1);
+        border: 1px solid rgba(243, 156, 18, 0.2);
+        padding: 8px 16px;
+        border-radius: 50px;
+        margin-bottom: 30px;
+        font-size: 0.9rem;
+        color: #f39c12;
+    }
+    .status-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; margin-right: 10px; box-shadow: 0 0 10px #4ade80; }
+    .user-name { font-weight: 700; margin-left: 5px; }
+
+    .hero-title { font-size: 4rem; font-weight: 800; line-height: 1.1; margin-bottom: 20px; letter-spacing: -1px; }
+    .hero-title span { color: #f39c12; }
+    .hero-subtitle { font-size: 1.25rem; color: #a0a0a0; margin-bottom: 40px; }
+
+    /* SEARCH BAR PREMIUM */
+    .search-bar-premium {
+        background: rgba(255, 255, 255, 0.05);
+        backdrop-filter: blur(15px);
+        padding: 10px;
+        border-radius: 20px;
+        display: flex;
+        gap: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    }
+    .search-input-wrapper { flex: 1; display: flex; align-items: center; padding: 0 20px; gap: 15px; }
+    .search-input-wrapper i { color: #f39c12; font-size: 1.2rem; }
+    .search-input-wrapper input { 
+        background: transparent; border: none; color: #fff; width: 100%; font-size: 1rem; outline: none; 
+    }
+    .search-btn {
+        background: #f39c12; color: #fff; border: none; padding: 15px 35px; border-radius: 15px;
+        font-weight: 700; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px;
+    }
+    .search-btn:hover { background: #e67e22; transform: translateY(-2px); }
+
+    /* FILTERS */
+    .section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .section-title { font-size: 2.2rem; font-weight: 800; margin: 0; }
+    .section-line { width: 60px; height: 4px; background: #f39c12; margin-top: 15px; border-radius: 2px; }
+    
+    .filter-pills { display: flex; gap: 12px; }
+    .pill {
+        padding: 10px 24px; border-radius: 50px; background: #242424; color: #888;
+        cursor: pointer; transition: 0.3s; font-weight: 600; border: 1px solid transparent;
+    }
+    .pill.active { background: #f39c12; color: #fff; box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2); }
+    .pill:hover:not(.active) { background: #333; color: #fff; }
+
+    /* PROPERTY CARDS */
+    .property-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 30px; }
+    
+    .luxury-card {
+        background: #1e1e1e; border-radius: 24px; overflow: hidden;
+        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .luxury-card:hover { transform: translateY(-12px); border-color: rgba(243, 156, 18, 0.3); box-shadow: 0 40px 80px rgba(0,0,0,0.6); }
+
+    .card-image-box { height: 260px; position: relative; overflow: hidden; }
+    .card-image-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.6s; }
+    .luxury-card:hover .card-image-box img { transform: scale(1.1); }
+    
+    .card-tag {
+        position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6);
+        backdrop-filter: blur(5px); color: #fff; padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 600;
+    }
+
+    .card-body-luxury { padding: 30px; }
+    .card-address-title { font-size: 1.3rem; font-weight: 700; margin-bottom: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    
+    .card-specs { display: flex; gap: 20px; margin-bottom: 25px; color: #a0a0a0; }
+    .spec-item { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; }
+    .spec-item i { color: #f39c12; }
+
+    .card-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.05); }
+    .price-label { font-size: 0.75rem; color: #666; text-transform: uppercase; letter-spacing: 1px; }
+    .card-price-tag { font-size: 1.5rem; font-weight: 800; color: #f39c12; }
+    .currency { font-size: 1rem; margin-left: 2px; }
+
+    .btn-view-circle {
+        width: 50px; height: 50px; border-radius: 50%; background: #242424; color: #fff;
+        display: flex; align-items: center; justify-content: center; transition: 0.3s; text-decoration: none;
+    }
+    .luxury-card:hover .btn-view-circle { background: #f39c12; transform: rotate(-45deg); }
+
+    /* SKELETON & EMPTY STATE */
+    .skeleton-card { height: 450px; background: #1e1e1e; border-radius: 24px; animation: pulse 1.5s infinite; }
+    @@keyframes pulse { 0% { opacity: 0.6; } 50% { opacity: 0.3; } 100% { opacity: 0.6; } }
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 100px; color: #555; }
+    .empty-state i { font-size: 4rem; margin-bottom: 20px; }
+
+    /* ANIMATIONS */
+    .fade-in { animation: fadeIn 0.8s ease-out; }
+    .fade-in-delay { animation: fadeIn 0.8s ease-out 0.3s backwards; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @@media (max-width: 768px) {
+        .hero-title { font-size: 2.5rem; }
+        .section-header { flex-direction: column; align-items: flex-start; gap: 30px; }
+        .page-wrapper { padding: 40px 20px; }
+    }
+</style>
 
 @code {
     string searchQuery = "";
@@ -92,6 +257,7 @@
     {
         try
         {
+            // Здесь должна быть логика получения данных
             allProperties = await ApiClient.GetPropertiesAsync();
             ApplyFilter();
         }
@@ -118,22 +284,21 @@
 
         if (string.IsNullOrEmpty(selectedType))
         {
-            popularProperties = allProperties;
+            popularProperties = allProperties.Take(6).ToList();
         }
         else
         {
             popularProperties = selectedType switch
             {
-                "Apartment" => allProperties.Where(p => p.PropertyTypeName == "Квартира").ToList(),
-                "House" => allProperties.Where(p => p.PropertyTypeName is "Дом" or "Таунхаус").ToList(),
-                "Land" => allProperties.Where(p => p.PropertyTypeName == "Участок").ToList(),
-                _ => allProperties
+                "Apartment" => allProperties.Where(p => p.PropertyTypeName == "Квартира").Take(6).ToList(),
+                "House" => allProperties.Where(p => p.PropertyTypeName is "Дом" or "Таунхаус").Take(6).ToList(),
+                "Land" => allProperties.Where(p => p.PropertyTypeName == "Участок").Take(6).ToList(),
+                _ => allProperties.Take(6).ToList()
             };
         }
-        StateHasChanged();
     }
 
-    private async void OnKeyDown(KeyboardEventArgs e)
+    private void OnKeyDown(KeyboardEventArgs e)
     {
         if (e.Key == "Enter")
             Search();
@@ -141,6 +306,7 @@
 
     private void Search()
     {
+        if (string.IsNullOrWhiteSpace(searchQuery)) return;
         var encoded = Uri.EscapeDataString(searchQuery);
         Navigation.NavigateTo($"/properties?search={encoded}");
     }

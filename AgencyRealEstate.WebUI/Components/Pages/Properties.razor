@@ -5,15 +5,26 @@
 @inject ApiClient Api
 @inject NavigationManager Navigation
 
-
 <div class="main-container">
-
-    <div class="page-wrapper" style="margin-top: 90px;">
+    <div class="page-wrapper">
+        
+        @* Заголовок каталога *@
         <div class="section-header">
-            <div>
-                <h1 class="section-title">Каталог недвижимости</h1>
-                <p class="section-subtitle">Найдите идеальный вариант среди проверенных объектов</p>
+            <div class="title-group">
+                <h1 class="section-title">Каталог <span>недвижимости</span></h1>
+                <p class="section-subtitle">
+                    @if (!string.IsNullOrWhiteSpace(Search))
+                    {
+                        <span>Результаты поиска по запросу: <strong>"@Search"</strong></span>
+                    }
+                    else
+                    {
+                        <span>Найдите идеальный вариант среди проверенных объектов</span>
+                    }
+                </p>
+                <div class="section-line"></div>
             </div>
+
             <div class="filter-pills">
                 <span class="pill @(selectedType == null ? "active" : "")" @onclick='() => FilterByType(null)'>Все</span>
                 <span class="pill @(selectedType == "Apartment" ? "active" : "")" @onclick='() => FilterByType("Apartment")'>Квартиры</span>
@@ -22,27 +33,37 @@
             </div>
         </div>
 
+        @* Сетка объектов *@
         <div class="property-grid">
             @if (filteredProperties == null)
             {
                 @for (int i = 0; i < 8; i++)
                 {
-                    <div class="skeleton-card"></div>
+                    <div class="skeleton-card">
+                        <div class="skeleton-img"></div>
+                        <div class="skeleton-text"></div>
+                        <div class="skeleton-text short"></div>
+                    </div>
                 }
             }
             else if (!filteredProperties.Any())
             {
-                <div class="empty-state">В данном разделе пока нет доступных объектов.</div>
+                <div class="empty-state fade-in">
+                    <i class="fas fa-box-open"></i>
+                    <h3>Ничего не нашли</h3>
+                    <p>Попробуйте изменить параметры фильтрации или поисковый запрос.</p>
+                    <button class="reset-btn" @onclick='() => FilterByType(null)'>Сбросить всё</button>
+                </div>
             }
             else
             {
                 @foreach (var prop in filteredProperties)
                 {
-                    <div class="luxury-card" @onclick="() => GoToProperty(prop.PropertyID)">
+                    <div class="luxury-card fade-in" @onclick="() => GoToProperty(prop.PropertyID)">
                         <div class="card-image-box">
                             @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
                             {
-                                <img src="@prop.PhotoUrls.First()" alt="Property" class="card-img-fixed" />
+                                <img src="@prop.PhotoUrls.First()" alt="Property" />
                             }
                             else
                             {
@@ -50,24 +71,30 @@
                                     <i class="fas fa-image"></i>
                                 </div>
                             }
-                            <div class="status-badge-overlay @prop.StatusName.ToLower()">
+                            @* Статус с цветовым кодированием *@
+                            <div class="status-badge @prop.StatusName.ToLower()">
+                                <span class="status-dot-inner"></span>
                                 @TranslateStatus(prop.StatusName)
                             </div>
+                            <div class="card-tag-overlay">@prop.PropertyTypeName</div>
                         </div>
+
                         <div class="card-body-luxury">
-                            <div class="card-main-info">
-                                <div class="card-category">@prop.PropertyTypeName</div>
-                                <h3 class="card-address-title">@prop.Address</h3>
-                                <div class="card-specs">
-                                    <span><i class="fas fa-bed"></i> @prop.Rooms к.</span>
-                                    <span><i class="fas fa-ruler-combined"></i> @prop.TotalArea м²</span>
-                                    <span><i class="fas fa-layer-group"></i> @prop.Floor эт.</span>
-                                </div>
+                            <h3 class="card-address-title">@prop.Address</h3>
+                            
+                            <div class="card-specs">
+                                <div class="spec-item"><i class="fas fa-bed"></i> <span>@prop.Rooms к.</span></div>
+                                <div class="spec-item"><i class="fas fa-ruler-combined"></i> <span>@prop.TotalArea м²</span></div>
+                                <div class="spec-item"><i class="fas fa-layer-group"></i> <span>@prop.Floor эт.</span></div>
                             </div>
+
                             <div class="card-footer">
-                                <div class="card-price-tag">@prop.Price?.ToString("N0") ₽</div>
+                                <div class="price-container">
+                                    <span class="price-label">Стоимость</span>
+                                    <div class="card-price-tag">@prop.Price?.ToString("N0") <span class="currency">₽</span></div>
+                                </div>
                                 <div class="btn-view-circle">
-                                    <i class="fas fa-arrow-right"></i>
+                                    <i class="fas fa-chevron-right"></i>
                                 </div>
                             </div>
                         </div>
@@ -77,6 +104,112 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* БАЗОВЫЕ СТИЛИ */
+    .main-container { background: #121212; min-height: 100vh; color: #fff; }
+    .page-wrapper { max-width: 1440px; margin: 0 auto; padding: 120px 40px 60px 40px; }
+
+    /* ШАПКА КАТАЛОГА */
+    .section-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: flex-end; 
+        margin-bottom: 60px;
+        gap: 30px;
+    }
+    .section-title { font-size: 3rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+    .section-title span { color: #f39c12; }
+    .section-subtitle { color: #888; margin: 10px 0 0 0; font-size: 1.1rem; }
+    .section-line { width: 80px; height: 4px; background: #f39c12; margin-top: 20px; border-radius: 2px; }
+
+    /* ФИЛЬТРЫ */
+    .filter-pills { display: flex; gap: 10px; background: rgba(255,255,255,0.03); padding: 8px; border-radius: 60px; border: 1px solid rgba(255,255,255,0.05); }
+    .pill {
+        padding: 12px 28px; border-radius: 50px; color: #888;
+        cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); font-weight: 600;
+    }
+    .pill.active { background: #f39c12; color: #fff; box-shadow: 0 10px 20px rgba(243, 156, 18, 0.3); }
+    .pill:hover:not(.active) { color: #fff; background: rgba(255,255,255,0.05); }
+
+    /* СЕТКА И КАРТОЧКИ */
+    .property-grid { 
+        display: grid; 
+        grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); 
+        gap: 35px; 
+    }
+
+    .luxury-card {
+        background: #1a1a1a; border-radius: 28px; overflow: hidden;
+        transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        border: 1px solid rgba(255,255,255,0.05);
+        cursor: pointer;
+        position: relative;
+    }
+    .luxury-card:hover { transform: translateY(-15px); border-color: rgba(243, 156, 18, 0.4); box-shadow: 0 40px 80px rgba(0,0,0,0.7); }
+
+    .card-image-box { height: 240px; position: relative; overflow: hidden; }
+    .card-image-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.8s; }
+    .luxury-card:hover .card-image-box img { transform: scale(1.1); }
+
+    /* БЭЙДЖИ СТАТУСА */
+    .status-badge {
+        position: absolute; top: 20px; right: 20px;
+        padding: 6px 14px; border-radius: 12px; font-size: 0.75rem; font-weight: 700;
+        text-transform: uppercase; display: flex; align-items: center; gap: 6px;
+        backdrop-filter: blur(8px); z-index: 2;
+    }
+    .status-dot-inner { width: 6px; height: 6px; border-radius: 50%; }
+
+    /* Цвета статусов */
+    .status-badge.available { background: rgba(74, 222, 128, 0.2); color: #4ade80; }
+    .status-badge.available .status-dot-inner { background: #4ade80; box-shadow: 0 0 8px #4ade80; }
+    
+    .status-badge.reserved { background: rgba(243, 156, 18, 0.2); color: #f39c12; }
+    .status-badge.reserved .status-dot-inner { background: #f39c12; }
+    
+    .status-badge.sold, .status-badge.rented { background: rgba(255, 94, 94, 0.2); color: #ff5e5e; }
+    .status-badge.sold .status-dot-inner { background: #ff5e5e; }
+
+    .card-tag-overlay {
+        position: absolute; bottom: 15px; left: 20px;
+        background: rgba(0,0,0,0.5); color: #fff; padding: 4px 12px; border-radius: 6px; font-size: 0.8rem;
+    }
+
+    /* ТЕЛО КАРТОЧКИ */
+    .card-body-luxury { padding: 25px; }
+    .card-address-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 15px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #fff; }
+    
+    .card-specs { display: flex; gap: 15px; margin-bottom: 25px; color: #777; border-bottom: 1px solid rgba(255,255,255,0.03); padding-bottom: 15px; }
+    .spec-item { display: flex; align-items: center; gap: 6px; font-size: 0.9rem; }
+    .spec-item i { color: #f39c12; opacity: 0.8; }
+
+    .card-footer { display: flex; justify-content: space-between; align-items: center; }
+    .price-label { font-size: 0.7rem; color: #555; text-transform: uppercase; display: block; margin-bottom: 2px; }
+    .card-price-tag { font-size: 1.4rem; font-weight: 800; color: #f39c12; }
+    .currency { font-size: 0.9rem; }
+
+    .btn-view-circle {
+        width: 44px; height: 44px; border-radius: 50%; background: #242424; color: #fff;
+        display: flex; align-items: center; justify-content: center; transition: 0.3s;
+    }
+    .luxury-card:hover .btn-view-circle { background: #f39c12; transform: translateX(5px); }
+
+    /* ПУСТОЕ СОСТОЯНИЕ */
+    .empty-state { grid-column: 1/-1; text-align: center; padding: 100px 20px; background: #1a1a1a; border-radius: 30px; border: 1px dashed #333; }
+    .empty-state i { font-size: 4rem; color: #333; margin-bottom: 20px; }
+    .reset-btn { margin-top: 20px; background: #f39c12; border: none; padding: 12px 30px; border-radius: 12px; color: #fff; font-weight: 700; cursor: pointer; }
+
+    /* АНИМАЦИИ */
+    .fade-in { animation: fadeIn 0.6s ease forwards; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* АДАПТИВНОСТЬ */
+    @@media (max-width: 992px) {
+        .section-header { flex-direction: column; align-items: flex-start; }
+        .filter-pills { width: 100%; overflow-x: auto; white-space: nowrap; }
+    }
+</style>
 
 @code {
     [Parameter]
@@ -118,11 +251,9 @@
 
         var query = allProperties.AsEnumerable();
 
-        // Поиск по адресу (приходит из параметра Search)
         if (!string.IsNullOrWhiteSpace(Search))
             query = query.Where(p => p.Address?.Contains(Search, StringComparison.OrdinalIgnoreCase) == true);
 
-        // Фильтр по типу
         if (!string.IsNullOrEmpty(selectedType))
         {
             query = selectedType switch
@@ -142,7 +273,7 @@
     string TranslateStatus(string status) => status switch
     {
         "Available" => "Доступно",
-        "Reserved" => "Забронировано",
+        "Reserved" => "В резерве",
         "Sold" => "Продано",
         "Rented" => "Сдано",
         _ => status
