@@ -43,7 +43,8 @@
                             {
                                 <li class="menu-header">Личный кабинет</li>
                                 <li><a href="/profile" @onclick="CloseMenu"><i class="fas fa-user-edit"></i> Мой профиль</a></li>
-                                <li><a href="/my-requests" @onclick="CloseMenu"><i class="fas fa-clipboard-list"></i> Мои заявки</a></li>
+                               <li><a href="/my-showings" @onclick="CloseMenu"><i class="fas fa-clipboard-list"></i> Мои показы</a></li>
+                                <li><a href="/my-deals" @onclick="CloseMenu"><i class="fas fa-file-invoice-dollar"></i> Мои сделки</a></li>
                             }
 
                             @if (hasStaffAccess)
@@ -53,14 +54,20 @@
                                 {
                                     <li><a href="/admin" @onclick="CloseMenu"><i class="fas fa-shield-alt"></i> Администрирование</a></li>
                                 }
+                                @if (isAdmin || isManager)
+                                {
+                                    <li><a href="/add-property" @onclick="CloseMenu"><i class="fas fa-plus-circle"></i> Добавить объект</a></li>
+                                    <li><a href="/reports" @onclick="CloseMenu"><i class="fas fa-chart-bar"></i> Отчёты</a></li>
+                                }
                                 
                                 <li class="menu-header">Рабочая область</li>
                                 @if (isRealtor)
                                 {
                                     <li><a href="/clients" @onclick="CloseMenu"><i class="fas fa-address-book"></i> База клиентов</a></li>
                                 }
-                                <li><a href="/deals" @onclick="CloseMenu"><i class="fas fa-file-invoice-dollar"></i> Сделки</a></li>
-                                <li><a href="/calendar" @onclick="CloseMenu"><i class="fas fa-calendar-check"></i> Расписание</a></li>
+                                <li><a href="/realtor-deals" @onclick="CloseMenu"><i class="fas fa-file-invoice-dollar"></i> Сделки</a></li>
+                                <li><a href="/realtor-showings" @onclick="CloseMenu"><i class="fas fa-calendar-check"></i> Работа с показами</a></li>
+                                <li><a href="/showings" @onclick="CloseMenu"><i class="fas fa-hand-point-up"></i> Показы</a></li>
                             }
                             
                             <li class="divider"></li>

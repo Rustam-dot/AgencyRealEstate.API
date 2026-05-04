@@ -451,14 +451,13 @@
                     // 1. Сохраняем в куки (для будущих посещений)
                     await JS.InvokeVoidAsync("eval", $"document.cookie = 'authToken={result.Token}; path=/; secure; samesite=strict; max-age=86400'");
                     
-                    // 2. СРАЗУ сохраняем в TokenStorage (чтобы текущая сессия увидела токен без перезагрузки)
+                  
                     TokenStorage.Token = result.Token;
                     
-                    // 3. Уведомляем систему авторизации
+                  
                     ((TokenAuthenticationStateProvider)AuthStateProvider).NotifyAuthStateChanged();
                     
-                    // 4. Мягко переходим на главную. 
-                    // forceLoad: false критически важен, чтобы избежать цикла редиректов!
+                  
                     Navigation.NavigateTo("/", forceLoad: false); 
                 }
                 else

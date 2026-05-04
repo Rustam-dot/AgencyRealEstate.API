@@ -1,0 +1,248 @@
+﻿@page "/my-deals"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Client")]
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="elite-deals-layout">
+    <div class="ambient-glow"></div>
+
+    <div class="page-wrapper">
+        <header class="page-header">
+            <div class="header-text">
+                <h2 class="elite-title">Портфель сделок<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">Управляйте вашими приобретениями и отслеживайте статус документов</p>
+            </div>
+            <div class="stats-badge">
+                <i class="fas fa-folder-open"></i>
+                <span>@(deals?.Count ?? 0) активных</span>
+            </div>
+        </header>
+
+        @if (deals == null)
+        {
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <p>Загрузка реестра сделок...</p>
+            </div>
+        }
+        else if (!deals.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon-box">
+                    <i class="fas fa-file-signature"></i>
+                </div>
+                <h3>У вас пока нет сделок</h3>
+                <p>После просмотра объекта вы сможете инициировать сделку прямо из раздела «Мои показы».</p>
+                <a href="/my-showings" class="btn-explore">Перейти к показам</a>
+            </div>
+        }
+        else
+        {
+            <div class="deals-grid">
+                @foreach (var deal in deals)
+                {
+                    <div class="deal-card luxe-card">
+                        <div class="card-inner">
+                            @* Левая часть: Статус и Основная инфо *@
+                            <div class="deal-info">
+                                <div class="status-tags">
+                                    <span class="status-tag @deal.StatusName.ToLower()">
+                                        <span class="dot"></span> @TranslateStatus(deal.StatusName)
+                                    </span>
+                                    <span class="prop-status">@deal.PropertyStatus</span>
+                                </div>
+                                
+                                <h3 class="property-addr">@deal.PropertyAddress</h3>
+                                
+                                <div class="meta-row">
+                                    <div class="meta-item">
+                                        <i class="fas fa-user-tie"></i>
+                                        <span class="label">Риелтор:</span>
+                                        <span class="value">@deal.RealtorName</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Правая часть: Финансы и Действие *@
+                            <div class="deal-actions">
+                                <div class="price-box">
+                                    <span class="price-label">Сумма сделки</span>
+                                    <span class="price-value">@(deal.Amount?.ToString("N0") ?? "—") <small>₽</small></span>
+                                </div>
+
+                                @if (deal.CanCancel)
+                                {
+                                    <button class="btn-cancel-deal" @onclick="() => CancelDeal(deal.DealId)">
+                                        <i class="fas fa-times"></i>
+                                        <span>Отозвать заявку</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                    <div class="lock-status">
+                                        <i class="fas fa-lock"></i> Сделка зафиксирована
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --gold-bright: #ffb133;
+        --bg-dark: #0a0a0a;
+        --bg-card: #141414;
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --danger: #e74c3c;
+    }
+
+    .elite-deals-layout {
+        background: var(--bg-dark); min-height: 100vh; color: #fff;
+        padding: 120px 40px 60px; position: relative; overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ambient-glow {
+        position: fixed; top: 0; right: 0; width: 60%; height: 60%;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.03) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .page-wrapper { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: #666; margin-top: 8px; font-size: 1.1rem; }
+
+    .stats-badge {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
+        padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 12px;
+        color: var(--gold); font-weight: 700;
+    }
+
+    /* DEAL CARDS */
+    .deals-grid { display: flex; flex-direction: column; gap: 20px; }
+
+    .luxe-card {
+        background: var(--bg-card); border-radius: 24px; border: 1px solid var(--glass-border);
+        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); position: relative;
+    }
+    .luxe-card:hover { border-color: rgba(243, 156, 18, 0.3); transform: translateX(10px); }
+
+    .card-inner { display: flex; padding: 35px; gap: 40px; align-items: center; justify-content: space-between; }
+
+    .deal-info { flex: 1; }
+    
+    .status-tags { display: flex; gap: 12px; margin-bottom: 18px; align-items: center; }
+    
+    .status-tag {
+        font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+        padding: 6px 14px; border-radius: 50px; display: flex; align-items: center; gap: 8px;
+    }
+    .status-tag .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; box-shadow: 0 0 8px currentColor; }
+    
+    .status-tag.inprogress { background: rgba(243, 156, 18, 0.1); color: var(--gold); }
+    .status-tag.completed { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+    .status-tag.cancelled { background: rgba(231, 76, 60, 0.1); color: var(--danger); }
+
+    .prop-status { font-size: 0.75rem; color: #444; font-weight: 700; text-transform: uppercase; }
+
+    .property-addr { font-size: 1.6rem; font-weight: 700; margin: 0 0 15px 0; color: #fff; }
+
+    .meta-row { display: flex; gap: 25px; }
+    .meta-item { display: flex; align-items: center; gap: 10px; color: #888; }
+    .meta-item i { color: #333; }
+    .meta-item .label { font-size: 0.9rem; }
+    .meta-item .value { color: #bbb; font-weight: 600; }
+
+    /* ACTION & PRICE */
+    .deal-actions { text-align: right; min-width: 250px; }
+    .price-box { margin-bottom: 25px; }
+    .price-label { display: block; font-size: 0.8rem; color: #555; text-transform: uppercase; font-weight: 800; margin-bottom: 5px; }
+    .price-value { font-size: 2.2rem; font-weight: 900; color: var(--gold); letter-spacing: -1px; }
+    .price-value small { font-size: 1.2rem; opacity: 0.6; margin-left: 4px; }
+
+    .btn-cancel-deal {
+        background: transparent; border: 1px solid rgba(231, 76, 60, 0.3); color: var(--danger);
+        padding: 12px 24px; border-radius: 14px; font-weight: 700; cursor: pointer;
+        transition: 0.3s; display: inline-flex; align-items: center; gap: 10px;
+    }
+    .btn-cancel-deal:hover { background: var(--danger); color: #fff; border-color: var(--danger); box-shadow: 0 10px 20px rgba(231, 76, 60, 0.2); }
+
+    .lock-status { color: #333; font-size: 0.9rem; font-weight: 700; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+
+    /* LOADER & EMPTY */
+    .luxe-loader { text-align: center; padding: 100px 0; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(243, 156, 18, 0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    
+    .empty-state { text-align: center; padding: 100px 40px; background: rgba(255,255,255,0.02); border-radius: 32px; border: 1px dashed #222; }
+    .empty-icon-box { font-size: 4rem; color: #1a1a1a; margin-bottom: 30px; }
+    .btn-explore { display: inline-block; margin-top: 25px; color: var(--gold); text-decoration: none; font-weight: 700; border: 1px solid var(--gold); padding: 12px 30px; border-radius: 50px; transition: 0.3s; }
+    .btn-explore:hover { background: var(--gold); color: #000; }
+
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    @@media (max-width: 900px) {
+        .card-inner { flex-direction: column; text-align: center; }
+        .deal-actions { text-align: center; width: 100%; border-top: 1px solid #222; padding-top: 25px; }
+        .status-tags, .meta-row, .lock-status { justify-content: center; }
+        .luxe-card:hover { transform: translateY(-5px); }
+    }
+</style>
+
+@code {
+    private List<DealDto>? deals;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDeals();
+    }
+
+    private async Task LoadDeals()
+    {
+        try 
+        { 
+            await Task.Delay(400); // Для эффекта плавной загрузки
+            deals = await Http.GetFromJsonAsync<List<DealDto>>("deals/my"); 
+        }
+        catch { deals = new(); }
+    }
+
+    private string TranslateStatus(string status) => status switch
+    {
+        "InProgress" => "В процессе",
+        "Completed" => "Завершена",
+        "Cancelled" => "Отменена",
+        _ => status
+    };
+
+    private async Task CancelDeal(int id)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"deals/{id}/cancel", null);
+            if (response.IsSuccessStatusCode) await LoadDeals();
+        }
+        catch { }
+    }
+
+    public class DealDto
+    {
+        public int DealId { get; set; }
+        public decimal? Amount { get; set; }
+        public string PropertyAddress { get; set; } = "";
+        public string RealtorName { get; set; } = "";
+        public string StatusName { get; set; } = "";
+        public string PropertyStatus { get; set; } = "";
+        public bool CanCancel { get; set; }
+    }
+}

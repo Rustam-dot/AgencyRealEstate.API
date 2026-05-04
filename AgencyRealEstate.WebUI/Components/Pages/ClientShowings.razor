@@ -1,0 +1,312 @@
+﻿@page "/my-showings"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Client")]
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="elite-showings-layout">
+    @* Декоративный фон *@
+    <div class="ambient-glow"></div>
+    <div class="orb orb-subtle"></div>
+
+    <div class="page-wrapper">
+        <header class="page-header">
+            <div class="header-text">
+                <h2 class="elite-title">Мои визиты<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">История ваших просмотров и запланированные встречи</p>
+            </div>
+            <div class="stats-badge">
+                <i class="fas fa-clock"></i>
+                <span>@(showings?.Count ?? 0) записей</span>
+            </div>
+        </header>
+
+        @if (showings == null)
+        {
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <p>Загрузка расписания...</p>
+            </div>
+        }
+        else if (!showings.Any())
+        {
+            <div class="empty-state fade-in">
+                <div class="empty-icon-box">
+                    <i class="fas fa-calendar-times"></i>
+                </div>
+                <h3>Пока ничего не запланировано</h3>
+                <p>Ваша история показов пуста. Выберите объект в каталоге, чтобы записаться на просмотр.</p>
+                <a href="/" class="btn-back-home">Перейти к поиску</a>
+            </div>
+        }
+        else
+        {
+            <div class="showing-grid">
+                @foreach (var showing in showings)
+                {
+                    <div class="showing-card @(showing.CanDeal ? "can-deal-highlight" : "")">
+                        <div class="card-main">
+                            @* Календарный блок *@
+                            <div class="time-block">
+                                <div class="date-tag">
+                                    <span class="day">@showing.ShowingDateTime.Day</span>
+                                    <span class="month">@showing.ShowingDateTime.ToString("MMM").ToUpper()</span>
+                                </div>
+                                <div class="time-tag">@showing.ShowingDateTime.ToString("HH:mm")</div>
+                            </div>
+
+                            @* Информация *@
+                            <div class="showing-info">
+                                <div class="status-indicator">
+                                    <span class="status-dot @(showing.ResultName == null ? "pending" : "completed")"></span>
+                                    <span class="status-text">@(showing.ResultName ?? "Ожидается встреча")</span>
+                                </div>
+                                
+                                <h4 class="property-addr">@showing.PropertyAddress</h4>
+                                
+                                <div class="meta-row">
+                                    <div class="meta-item">
+                                        <i class="fas fa-user-tie"></i>
+                                        <span class="label">Риелтор:</span>
+                                        <span class="value">@showing.RealtorName</span>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(showing.Comments))
+                                {
+                                    <div class="comment-bubble">
+                                        <i class="fas fa-comment-dots"></i>
+                                        <p>@showing.Comments</p>
+                                    </div>
+                                }
+                            </div>
+
+                            @* Действие *@
+                            <div class="action-section">
+                                @if (showing.CanDeal)
+                                {
+                                    <button class="btn-premium-deal" @onclick="() => GoToDeal(showing.ShowingId)">
+                                        <i class="fas fa-file-signature"></i>
+                                        <span>Оформить сделку</span>
+                                    </button>
+                                }
+                                else
+                                {
+                                   @if (showing.CanDeal)
+{
+    <button class="btn-premium-deal" @onclick="() => GoToDeal(showing.ShowingId)">
+        <i class="fas fa-file-signature"></i>
+        <span>Оформить сделку</span>
+    </button>
+}
+else
+{
+    // Если результат уже установлен (показ завершён/заинтересован), но сделка создана
+    @if (showing.ResultName != null)
+    {
+        <div class="info-badge completed">
+            <i class="fas fa-check-circle"></i>
+            <span>Сделка уже сформирована</span>
+        </div>
+    }
+    else
+    {
+        <div class="info-badge">
+            <i class="fas fa-lock"></i>
+            <span>Доступно после осмотра</span>
+        </div>
+    }
+}
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --gold-bright: #ffb133;
+        --bg-dark: #0a0a0a;
+        --bg-card: #141414;
+        --glass: rgba(255, 255, 255, 0.03);
+        --border-glass: rgba(255, 255, 255, 0.08);
+        --success: #2ecc71;
+    }
+
+    .elite-showings-layout {
+        background: var(--bg-dark);
+        min-height: 100vh;
+        color: #fff;
+        padding: 120px 40px 60px;
+        position: relative;
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ambient-glow {
+        position: fixed; top: -10%; left: 50%; width: 80%; height: 50%;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.05) 0%, transparent 70%);
+        transform: translateX(-50%); pointer-events: none; z-index: 0;
+    }
+
+    .orb-subtle {
+        position: absolute; bottom: -100px; right: -100px; width: 400px; height: 400px;
+        background: rgba(243, 156, 18, 0.03); filter: blur(100px); border-radius: 50%;
+    }
+
+    .page-wrapper { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: #666; margin-top: 8px; font-size: 1.1rem; }
+
+    .stats-badge {
+        background: var(--glass); border: 1px solid var(--border-glass);
+        padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 12px;
+        color: #888; font-weight: 600; font-size: 0.9rem;
+    }
+    .stats-badge i { color: var(--gold); }
+
+    /* GRID & CARDS */
+    .showing-grid { display: flex; flex-direction: column; gap: 20px; }
+
+    .showing-card {
+        background: var(--bg-card); border-radius: 24px;
+        border: 1px solid var(--border-glass); transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+        position: relative; overflow: hidden;
+    }
+    .showing-card:hover { border-color: rgba(243, 156, 18, 0.4); transform: translateX(10px); }
+
+    /* Деликатное выделение карточки с возможностью сделки */
+    .can-deal-highlight { border-left: 4px solid var(--gold); }
+
+    .card-main { display: flex; padding: 30px; gap: 40px; align-items: center; }
+
+    /* TIME BLOCK */
+    .time-block {
+        min-width: 110px; padding: 20px 10px; background: rgba(0,0,0,0.4);
+        border-radius: 20px; border: 1px solid rgba(255,255,255,0.05);
+        text-align: center;
+    }
+    .date-tag .day { display: block; font-size: 2.2rem; font-weight: 900; color: #fff; line-height: 1; }
+    .date-tag .month { font-size: 0.85rem; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
+    .time-tag { margin-top: 15px; font-weight: 800; font-size: 1.1rem; color: #666; }
+
+    /* INFO SECTION */
+    .showing-info { flex: 1; }
+    
+    .status-indicator { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+    .status-dot.pending { background: var(--gold); box-shadow: 0 0 10px var(--gold); }
+    .status-dot.completed { background: var(--success); box-shadow: 0 0 10px var(--success); }
+    .status-text { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; font-weight: 700; color: #555; }
+
+    .property-addr { font-size: 1.5rem; font-weight: 700; margin: 0 0 15px 0; color: #fff; }
+
+    .meta-row { display: flex; gap: 20px; color: #888; font-size: 0.95rem; }
+    .meta-item { display: flex; align-items: center; gap: 8px; }
+    .meta-item i { color: #444; }
+    .meta-item .value { color: #bbb; font-weight: 600; }
+
+    .comment-bubble {
+        margin-top: 15px; padding: 12px 20px; background: rgba(255,255,255,0.02);
+        border-radius: 12px; display: flex; gap: 12px; align-items: flex-start;
+    }
+    .comment-bubble i { color: #444; margin-top: 4px; }
+    .comment-bubble p { margin: 0; font-style: italic; color: #777; font-size: 0.9rem; line-height: 1.5; }
+
+    /* ACTION BUTTON */
+    .action-section { min-width: 200px; text-align: right; }
+
+    .btn-premium-deal {
+        background: linear-gradient(135deg, var(--gold), #e67e22); color: #000;
+        border: none; padding: 16px 28px; border-radius: 16px; font-weight: 800;
+        display: flex; align-items: center; gap: 12px; cursor: pointer; transition: 0.3s;
+        box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2); width: 100%; justify-content: center;
+    }
+    .btn-premium-deal:hover { 
+        background: #fff; transform: translateY(-3px); 
+        box-shadow: 0 15px 30px rgba(0,0,0,0.4);
+    }
+
+    .info-badge {
+        display: inline-flex; align-items: center; gap: 8px; color: #444;
+        font-size: 0.85rem; font-weight: 600; border: 1px solid rgba(255,255,255,0.05);
+        padding: 8px 16px; border-radius: 50px;
+    }
+
+    /* LOADER & EMPTY */
+    .luxe-loader { text-align: center; padding: 100px 0; color: #444; }
+    .spinner { 
+        width: 40px; height: 40px; border: 3px solid rgba(243, 156, 18, 0.1); 
+        border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; 
+    }
+    
+    .empty-state { text-align: center; padding: 80px 40px; background: var(--glass); border-radius: 32px; border: 1px dashed var(--border-glass); }
+    .empty-icon-box { font-size: 3rem; color: #222; margin-bottom: 20px; }
+    .btn-back-home { 
+        display: inline-block; margin-top: 25px; color: var(--gold); 
+        text-decoration: none; font-weight: 700; border: 1px solid var(--gold);
+        padding: 12px 30px; border-radius: 50px; transition: 0.3s;
+    }
+    .btn-back-home:hover { background: var(--gold); color: #000; }
+
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .fade-in { animation: fadeIn 0.8s ease forwards; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @@media (max-width: 900px) {
+        .card-main { flex-direction: column; text-align: center; gap: 20px; }
+        .meta-row { justify-content: center; flex-wrap: wrap; }
+        .time-block { width: 100%; display: flex; justify-content: center; gap: 20px; align-items: center; padding: 15px; }
+        .time-tag { margin-top: 0; border-left: 1px solid #333; padding-left: 20px; }
+        .showing-card:hover { transform: translateY(-5px); }
+        .action-section { width: 100%; }
+    }
+</style>
+
+@code {
+    private List<MyShowingDto>? showings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShowings();
+    }
+
+    private async Task LoadShowings()
+    {
+        try
+        {
+            await Task.Delay(500); // Для эффекта плавной загрузки
+            showings = await Http.GetFromJsonAsync<List<MyShowingDto>>("showings/my");
+        }
+        catch
+        {
+            showings = new();
+        }
+    }
+
+    private void GoToDeal(int showingId)
+    {
+        Navigation.NavigateTo($"/deals/create?showingId={showingId}");
+    }
+
+    public class MyShowingDto
+    {
+        public int ShowingId { get; set; }
+        public DateTime ShowingDateTime { get; set; }
+        public string PropertyAddress { get; set; } = "";
+        public string RealtorName { get; set; } = "";
+        public string? ResultName { get; set; }
+        public string? Comments { get; set; }
+        public bool CanDeal { get; set; }
+    }
+}

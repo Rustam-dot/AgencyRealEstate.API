@@ -3,173 +3,138 @@
 @using AgencyRealEstate.WebUI.Services
 @using AgencyRealEstate.WebUI.Models
 @using System.ComponentModel.DataAnnotations
+@using MudBlazor
 @inject ApiClient Api
-@inject IJSRuntime JsRuntime
+@inject ISnackbar Snackbar
+@inject IDialogService DialogService
 
-<div class="main-container">
-    <div class="page-wrapper-premium">
+<MudThemeProvider IsDarkMode="true" Theme="_luxeTheme" />
+<MudDialogProvider FullWidth="true" MaxWidth="MaxWidth.ExtraSmall" />
+<MudSnackbarProvider />
+
+<div class="luxe-page-container">
+    <div class="content-max-width">
         @if (property == null)
         {
-            <div class="loader-container">
-                <div class="spinner-premium"></div>
-                <p>Загружаем детали объекта...</p>
+            <div class="luxe-loader">
+                <MudProgressCircular Color="Color.Warning" Indeterminate="true" Size="Size.Large" />
             </div>
         }
         else
         {
-            <div class="container-premium">
-                @* Навигация назад *@
-                <div class="property-detail-header fade-in">
-                    <a href="/properties" class="back-link">
-                        <i class="fas fa-arrow-left"></i> Назад к списку объектов
-                    </a>
-                </div>
+           
+            <div class="luxe-nav fade-in">
+                <a href="/properties" class="luxe-back-btn">
+                    <div class="btn-circle"><i class="fas fa-chevron-left"></i></div>
+                    <span>Вернуться в каталог</span>
+                </a>
+            </div>
 
-                <div class="premium-grid">
-                    @* ЛЕВАЯ КОЛОНКА: Контент *@
-                    <div class="content-section fade-in">
-                        
-                        @* Главная галерея *@
-                        <div class="main-gallery-card">
-                            <div class="featured-image-wrapper">
-                                @if (property.PhotoUrls?.Any() == true)
-                                {
-                                    <img src="@(selectedPhotoUrl ?? property.PhotoUrls.First())" class="featured-image" alt="Property Photo" />
-                                }
-                                else
-                                {
-                                    <div class="no-photo-placeholder-lg">
-                                        <i class="fas fa-camera-retro"></i>
-                                        <span>Фотографии скоро появятся</span>
-                                    </div>
-                                }
-                                
-                                <div class="status-badge-premium @property.StatusName?.ToLower()">
-                                    <span class="status-dot"></span>
-                                    @TranslateStatus(property.StatusName)
-                                </div>
-                            </div>
-
-                            @if (property.PhotoUrls?.Count > 1)
-                            {
-                                <div class="thumbnails-container">
-                                    @foreach (var url in property.PhotoUrls)
-                                    {
-                                        <div class="thumb-item @(url == (selectedPhotoUrl ?? property.PhotoUrls.First()) ? "active" : "")"
-                                             @onclick="() => selectedPhotoUrl = url">
-                                            <img src="@url" alt="Preview" />
-                                        </div>
-                                    }
-                                </div>
-                            }
-                        </div>
-
-                        @* Описание и Характеристики *@
-                        <div class="property-info-card">
-                            <div class="info-main-header">
-                                <div class="type-badge">@property.PropertyTypeName</div>
-                                <h1 class="property-address-title">@property.Address</h1>
-                                <div class="price-hero">
-                                    <span class="price-label">Предложение месяца</span>
-                                    <div class="price-value">@property.Price?.ToString("N0") <span class="currency">₽</span></div>
-                                </div>
-                            </div>
-
-                            <div class="specs-grid">
-                                <div class="spec-card">
-                                    <i class="fas fa-ruler-combined"></i>
-                                    <div class="spec-info">
-                                        <span class="label">Общая площадь</span>
-                                        <span class="val">@property.TotalArea м²</span>
-                                    </div>
-                                </div>
-                                <div class="spec-card">
-                                    <i class="fas fa-bed"></i>
-                                    <div class="spec-info">
-                                        <span class="label">Комнат</span>
-                                        <span class="val">@property.Rooms</span>
-                                    </div>
-                                </div>
-                                <div class="spec-card">
-                                    <i class="fas fa-layer-group"></i>
-                                    <div class="spec-info">
-                                        <span class="label">Этаж</span>
-                                        <span class="val">@property.Floor / @property.TotalFloors</span>
-                                    </div>
-                                </div>
-                                <div class="spec-card">
-                                    <i class="fas fa-couch"></i>
-                                    <div class="spec-info">
-                                        <span class="label">Жилая</span>
-                                        <span class="val">@(property.LivingArea?.ToString() ?? "—") м²</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div class="description-block">
-                                <h3 class="block-title">Описание объекта</h3>
-                                <div class="description-text">
-                                    @property.Description
-                                </div>
+            <div class="luxe-main-grid">
+               
+                <div class="luxe-content fade-in">
+                    <div class="luxe-gallery">
+                        <div class="luxe-main-img-wrapper">
+                            <img src="@(selectedPhotoUrl ?? property.PhotoUrls?.FirstOrDefault())" class="luxe-main-img" />
+                            <div class="luxe-badge-status @property.StatusName?.ToLower()">
+                                <span class="status-dot"></span> @TranslateStatus(property.StatusName)
                             </div>
                         </div>
+
+                        @if (property.PhotoUrls?.Count > 1)
+                        {
+                            <div class="luxe-thumbs">
+                                @foreach (var url in property.PhotoUrls)
+                                {
+                                    <div class="luxe-thumb @(url == (selectedPhotoUrl ?? property.PhotoUrls.First()) ? "is-active" : "")"
+                                         @onclick="() => selectedPhotoUrl = url">
+                                        <img src="@url" />
+                                    </div>
+                                }
+                            </div>
+                        }
                     </div>
 
-                    @* ПРАВАЯ КОЛОНКА: Форма (Sticky) *@
-                    <div class="sidebar-section fade-in-delay">
-                        <div class="sticky-sidebar">
-                            <div class="booking-card-premium">
-                                <div class="booking-header-box">
-                                    <h4>Записаться на просмотр</h4>
-                                    <p>Персональный показ в удобное время</p>
-                                </div>
-                                
-                                <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing">
-                                    <DataAnnotationsValidator />
-                                    
-                                    <div class="luxe-form-group">
-                                        <label><i class="far fa-calendar-alt"></i> Дата</label>
-                                        <InputDate @bind-Value="newShowing.Date" class="luxe-input" min="@DateTime.Today.ToString("yyyy-MM-dd")" />
-                                        <ValidationMessage For="@(() => newShowing.Date)" class="luxe-error" />
-                                    </div>
-
-                                    <div class="luxe-form-group">
-                                        <label><i class="far fa-clock"></i> Время</label>
-                                        <input type="time" @bind="newShowing.Time" class="luxe-input" />
-                                        <ValidationMessage For="@(() => newShowing.Time)" class="luxe-error" />
-                                    </div>
-
-                                    <div class="luxe-form-group">
-                                        <label><i class="far fa-user"></i> Ваше имя</label>
-                                        <InputText @bind-Value="newShowing.ClientName" class="luxe-input" placeholder="Иван Иванов" />
-                                        <ValidationMessage For="@(() => newShowing.ClientName)" class="luxe-error" />
-                                    </div>
-
-                                    <div class="luxe-form-group">
-                                        <label><i class="fas fa-phone-alt"></i> Телефон</label>
-                                        <InputText @bind-Value="newShowing.Phone" class="luxe-input" placeholder="+7 (___) ___-__-__" />
-                                        <ValidationMessage For="@(() => newShowing.Phone)" class="luxe-error" />
-                                    </div>
-
-                                    <div class="luxe-form-group">
-                                        <label><i class="far fa-comment-dots"></i> Комментарий</label>
-                                        <InputTextArea @bind-Value="newShowing.Comments" class="luxe-textarea" rows="2" placeholder="Особые пожелания..." />
-                                    </div>
-
-                                    <button type="submit" class="btn-luxe-primary">
-                                        <span>Отправить запрос</span>
-                                        <i class="fas fa-paper-plane"></i>
-                                    </button>
-                                </EditForm>
+                    <div class="luxe-info-card">
+                        <div class="luxe-header-group">
+                            <div class="luxe-tags">
+                                <span class="tag-pill gold">@property.PropertyTypeName</span>
+                                <span class="tag-pill glass">Эксклюзивное предложение</span>
                             </div>
-                            
-                            <div class="agent-mini-card">
-                                <i class="fas fa-headset"></i>
-                                <div>
-                                    <p>Нужна консультация?</p>
-                                    <a href="tel:+79998887766">+7 (999) 888-77-66</a>
+                            <h1 class="luxe-title">@property.Address</h1>
+                            <div class="luxe-price-strip">
+                                <span class="val">@property.Price?.ToString("N0")</span>
+                                <span class="cur">₽</span>
+                            </div>
+                        </div>
+
+                        <div class="luxe-specs">
+                            <div class="spec"><i class="fas fa-expand-arrows-alt"></i><div><p>ПЛОЩАДЬ</p><strong>@property.TotalArea м²</strong></div></div>
+                            <div class="spec"><i class="fas fa-bed"></i><div><p>КОМНАТЫ</p><strong>@property.Rooms</strong></div></div>
+                            <div class="spec"><i class="fas fa-layer-group"></i><div><p>ЭТАЖ</p><strong>@property.Floor / @property.TotalFloors</strong></div></div>
+                            <div class="spec"><i class="fas fa-gem"></i><div><p>ОТДЕЛКА</p><strong>Premium</strong></div></div>
+                        </div>
+
+                        <div class="luxe-desc">
+                            <h3>Описание объекта</h3>
+                            <p>@property.Description</p>
+                        </div>
+                    </div>
+                </div>
+
+               
+                <div class="luxe-sidebar">
+                    <div class="luxe-form-glass">
+                        <div class="form-title">
+                            <h2>Запись на просмотр</h2>
+                            <p>Персональный тур в удобное время</p>
+                        </div>
+
+                        <EditForm Model="@newShowing" OnValidSubmit="SubmitShowing">
+                            <DataAnnotationsValidator />
+
+                            <div class="luxe-field-box">
+                                <label>ФИО</label>
+                                <InputText @bind-Value="newShowing.FullName" class="luxe-input" placeholder="Иван Иванов" />
+                                <ValidationMessage For="@(() => newShowing.FullName)" class="luxe-err" />
+                            </div>
+
+                            <div class="luxe-field-box">
+                                <label>ТЕЛЕФОН</label>
+                                <input type="text" value="@newShowing.Phone" @oninput="HandlePhoneInput" 
+                                       class="luxe-input" maxlength="18" placeholder="+7 (___) ___-__-__" />
+                                <ValidationMessage For="@(() => newShowing.Phone)" class="luxe-err" />
+                            </div>
+
+                            <div class="luxe-row-inputs">
+                                <div class="luxe-field-box">
+                                    <label>ДАТА</label>
+                                    <MudDatePicker @bind-Date="newShowing.Date" Color="Color.Warning" Rounded="true" Class="mud-input-glass" />
+                                </div>
+                                <div class="luxe-field-box">
+                                    <label>ВРЕМЯ</label>
+                                    <MudTimePicker @bind-Time="bookingTime" Color="Color.Warning" Rounded="true" Class="mud-input-glass" />
                                 </div>
                             </div>
+
+                            <div class="luxe-field-box">
+                                <label>КОММЕНТАРИЙ</label>
+                                <InputTextArea @bind-Value="newShowing.Comments" class="luxe-input" rows="3" placeholder="Ваши пожелания..." />
+                            </div>
+
+                            <button type="submit" class="luxe-submit-btn">
+                                <span>Забронировать визит</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </EditForm>
+                    </div>
+
+                    <div class="luxe-agent-card">
+                        <div class="agent-icon"><i class="fas fa-user-tie"></i></div>
+                        <div class="agent-text">
+                            <span>Ваш брокер</span>
+                            <strong>Александр Волков</strong>
+                            <a href="tel:89998887766">+7 (999) 888-77-66</a>
                         </div>
                     </div>
                 </div>
@@ -179,101 +144,96 @@
 </div>
 
 <style>
-    .main-container { background: #121212; min-height: 100vh; }
-    .page-wrapper-premium { padding: 120px 40px 60px 40px; }
-    .container-premium { max-width: 1400px; margin: 0 auto; }
-
-    /* ХЛЕБНЫЕ КРОШКИ */
-    .property-detail-header { margin-bottom: 30px; }
-    .back-link { color: #888; text-decoration: none; font-weight: 600; font-size: 0.9rem; transition: 0.3s; display: flex; align-items: center; gap: 10px; }
-    .back-link:hover { color: #f39c12; transform: translateX(-5px); }
-
-    /* ГРИД */
-    .premium-grid { display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start; }
-
-    /* ГАЛЕРЕЯ */
-    .main-gallery-card { background: #1a1a1a; border-radius: 32px; padding: 15px; border: 1px solid rgba(255,255,255,0.05); margin-bottom: 30px; }
-    .featured-image-wrapper { position: relative; height: 600px; border-radius: 24px; overflow: hidden; }
-    .featured-image { width: 100%; height: 100%; object-fit: cover; transition: 0.5s; }
     
-    .thumbnails-container { display: flex; gap: 12px; margin-top: 15px; overflow-x: auto; padding-bottom: 10px; }
-    .thumb-item { width: 110px; height: 75px; border-radius: 12px; overflow: hidden; cursor: pointer; opacity: 0.4; transition: 0.3s; border: 2px solid transparent; flex-shrink: 0; }
-    .thumb-item.active { opacity: 1; border-color: #f39c12; transform: scale(1.05); }
-    .thumb-item img { width: 100%; height: 100%; object-fit: cover; }
-
-    /* БЭЙДЖ СТАТУСА */
-    .status-badge-premium { 
-        position: absolute; top: 25px; left: 25px; padding: 10px 22px; border-radius: 50px; 
-        font-weight: 800; font-size: 0.75rem; letter-spacing: 1px; backdrop-filter: blur(12px);
-        background: rgba(0,0,0,0.6); display: flex; align-items: center; gap: 10px;
-        border: 1px solid rgba(255,255,255,0.1);
+    :root {
+        --accent: #f39c12;
+        --bg-dark: #0d0d0d;
+        --card-bg: #161616;
+        --glass: rgba(255, 255, 255, 0.03);
+        --border: rgba(255, 255, 255, 0.08);
     }
-    .status-badge-premium.available { color: #4ade80; }
-    .status-badge-premium.reserved { color: #f39c12; }
+
+    .luxe-page-container {
+        background-color: var(--bg-dark);
+        min-height: 100vh;
+        padding: 40px 5%;
+        color: #fff;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .content-max-width { max-width: 1400px; margin: 0 auto; }
+
+   
+    .luxe-nav { margin-bottom: 30px; }
+    .luxe-back-btn { display: flex; align-items: center; gap: 15px; text-decoration: none; color: #888; transition: 0.3s; }
+    .luxe-back-btn .btn-circle { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; background: var(--glass); }
+    .luxe-back-btn:hover { color: var(--accent); }
+    .luxe-back-btn:hover .btn-circle { border-color: var(--accent); background: rgba(243,156,18,0.1); }
+
+    
+    .luxe-main-grid { display: grid; grid-template-columns: 1fr 400px; gap: 40px; align-items: start; }
+
+   
+    .luxe-main-img-wrapper { height: 500px; border-radius: 24px; overflow: hidden; position: relative; border: 1px solid var(--border); }
+    .luxe-main-img { width: 100%; height: 100%; object-fit: cover; }
+    .luxe-badge-status { position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.6); backdrop-filter: blur(10px); padding: 8px 16px; border-radius: 50px; border: 1px solid var(--border); display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600; }
+    .luxe-badge-status.available { color: #2ecc71; }
     .status-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; box-shadow: 0 0 10px currentColor; }
 
-    /* ИНФО-КАРТОЧКА */
-    .property-info-card { background: #1a1a1a; border-radius: 32px; padding: 45px; border: 1px solid rgba(255,255,255,0.05); }
-    .type-badge { color: #f39c12; font-weight: 700; text-transform: uppercase; letter-spacing: 2px; font-size: 0.8rem; margin-bottom: 15px; }
-    .property-address-title { font-size: 2.8rem; font-weight: 800; margin-bottom: 30px; line-height: 1.2; }
+    .luxe-thumbs { display: flex; gap: 12px; margin-top: 15px; }
+    .luxe-thumb { width: 90px; height: 60px; border-radius: 12px; overflow: hidden; border: 2px solid transparent; opacity: 0.4; cursor: pointer; transition: 0.3s; }
+    .luxe-thumb.is-active { opacity: 1; border-color: var(--accent); }
+    .luxe-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
     
-    .price-hero { background: rgba(255,255,255,0.03); padding: 25px; border-radius: 20px; display: inline-block; margin-bottom: 40px; }
-    .price-label { font-size: 0.75rem; color: #666; text-transform: uppercase; display: block; margin-bottom: 5px; }
-    .price-value { font-size: 2.5rem; font-weight: 800; color: #fff; }
-    .price-value .currency { color: #f39c12; }
+    .luxe-info-card { margin-top: 30px; }
+    .luxe-tags { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tag-pill { padding: 6px 14px; border-radius: 8px; font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; }
+    .tag-pill.gold { background: var(--accent); color: #000; }
+    .tag-pill.glass { background: var(--glass); border: 1px solid var(--border); color: #fff; }
 
-    /* ХАРАКТЕРИСТИКИ */
-    .specs-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; margin-bottom: 50px; }
-    .spec-card { background: #222; padding: 20px; border-radius: 18px; display: flex; align-items: center; gap: 20px; border: 1px solid transparent; transition: 0.3s; }
-    .spec-card:hover { border-color: rgba(243, 156, 18, 0.3); background: #252525; }
-    .spec-card i { font-size: 1.5rem; color: #f39c12; width: 30px; text-align: center; }
-    .spec-info .label { display: block; font-size: 0.8rem; color: #666; }
-    .spec-info .val { font-size: 1.1rem; font-weight: 700; }
+    .luxe-title { font-size: 38px; font-weight: 900; line-height: 1.1; margin-bottom: 20px; }
+    .luxe-price-strip { padding: 20px 30px; background: linear-gradient(90deg, rgba(243,156,18,0.15) 0%, transparent 100%); border-left: 4px solid var(--accent); border-radius: 4px 16px 16px 4px; }
+    .luxe-price-strip .val { font-size: 32px; font-weight: 800; }
+    .luxe-price-strip .cur { color: var(--accent); font-size: 20px; margin-left: 5px; }
 
-    .description-block .block-title { font-size: 1.4rem; font-weight: 700; margin-bottom: 20px; }
-    .description-text { color: #aaa; line-height: 1.8; font-size: 1.05rem; }
+    .luxe-specs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin: 30px 0; }
+    .spec { background: var(--card-bg); border: 1px solid var(--border); padding: 15px; border-radius: 16px; display: flex; align-items: center; gap: 15px; }
+    .spec i { font-size: 20px; color: var(--accent); }
+    .spec p { font-size: 9px; color: #555; margin: 0; letter-spacing: 1px; }
+    .spec strong { font-size: 16px; }
 
-    /* ФОРМА БРОНИРОВАНИЯ */
-    .sticky-sidebar { position: sticky; top: 120px; }
-    .booking-card-premium { background: #1e1e1e; border-radius: 32px; padding: 35px; border: 1px solid rgba(255,255,255,0.05); box-shadow: 0 30px 60px rgba(0,0,0,0.4); }
-    .booking-header-box { margin-bottom: 30px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 20px; }
-    .booking-header-box h4 { font-size: 1.3rem; font-weight: 800; margin-bottom: 5px; }
-    .booking-header-box p { font-size: 0.9rem; color: #666; margin: 0; }
+    .luxe-desc h3 { font-size: 20px; margin-bottom: 10px; color: #fff; }
+    .luxe-desc p { color: #aaa; line-height: 1.6; }
 
-    .luxe-form-group { margin-bottom: 20px; }
-    .luxe-form-group label { display: block; font-size: 0.75rem; font-weight: 700; color: #888; text-transform: uppercase; margin-bottom: 8px; }
-    .luxe-input, .luxe-textarea { 
-        width: 100%; background: #252525; border: 1px solid #333; border-radius: 14px; 
-        padding: 14px 18px; color: #fff; transition: 0.3s; font-size: 0.95rem; 
-    }
-    .luxe-input:focus, .luxe-textarea:focus { border-color: #f39c12; outline: none; background: #2a2a2a; box-shadow: 0 0 15px rgba(243, 156, 18, 0.1); }
+  
+    .luxe-form-glass { background: rgba(22, 22, 22, 0.7); backdrop-filter: blur(20px); border: 1px solid var(--border); border-radius: 24px; padding: 35px; box-shadow: 0 20px 50px rgba(0,0,0,0.5); }
+    .form-title h2 { font-size: 24px; font-weight: 800; margin-bottom: 5px; }
+    .form-title p { color: #666; font-size: 14px; margin-bottom: 25px; }
+
+    .luxe-field-box { margin-bottom: 18px; }
+    .luxe-field-box label { display: block; font-size: 10px; font-weight: 700; color: var(--accent); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
+    .luxe-input { width: 100%; background: var(--glass); border: 1px solid var(--border); border-radius: 12px; padding: 12px 16px; color: #fff; transition: 0.3s; }
+    .luxe-input:focus { border-color: var(--accent); outline: none; background: rgba(255,255,255,0.06); }
+
+    .luxe-row-inputs { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
     
-    .btn-luxe-primary { 
-        width: 100%; background: #f39c12; color: #fff; border: none; border-radius: 16px; 
-        padding: 20px; font-weight: 700; display: flex; align-items: center; justify-content: center; 
-        gap: 12px; cursor: pointer; transition: 0.3s; margin-top: 10px;
-    }
-    .btn-luxe-primary:hover { background: #e67e22; transform: translateY(-3px); box-shadow: 0 15px 30px rgba(243, 156, 18, 0.3); }
+    
+    .mud-input-glass { background: var(--glass) !important; border-radius: 12px !important; color: white !important; }
+    
+    .luxe-submit-btn { width: 100%; background: var(--accent); color: #000; border: none; padding: 16px; border-radius: 12px; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 10px; transition: 0.3s; }
+    .luxe-submit-btn:hover { background: #fff; transform: translateY(-3px); box-shadow: 0 10px 20px rgba(243,156,18,0.2); }
 
-    .agent-mini-card { display: flex; align-items: center; gap: 15px; margin-top: 25px; padding: 20px; background: rgba(243, 156, 18, 0.05); border-radius: 20px; border: 1px solid rgba(243, 156, 18, 0.1); }
-    .agent-mini-card i { font-size: 1.2rem; color: #f39c12; }
-    .agent-mini-card p { font-size: 0.8rem; color: #888; margin: 0; }
-    .agent-mini-card a { color: #fff; text-decoration: none; font-weight: 700; }
+    .luxe-agent-card { margin-top: 20px; background: var(--card-bg); border: 1px solid var(--border); border-radius: 16px; padding: 15px; display: flex; align-items: center; gap: 15px; }
+    .agent-icon { width: 40px; height: 40px; background: #222; border-radius: 10px; display: flex; align-items: center; justify-content: center; color: var(--accent); }
+    .agent-text span { display: block; font-size: 11px; color: #555; }c
+    .agent-text a { color: var(--accent); text-decoration: none; font-size: 14px; }
 
-    /* LOADER */
-    .loader-container { text-align: center; padding: 150px 0; }
-    .spinner-premium { width: 50px; height: 50px; border: 3px solid rgba(243, 156, 18, 0.1); border-top-color: #f39c12; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
-    @@keyframes spin { to { transform: rotate(360deg); } }
-
-    /* ANIMATIONS */
-    .fade-in { animation: fadeIn 0.8s ease-out forwards; }
-    .fade-in-delay { animation: fadeIn 0.8s ease-out 0.3s backwards; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+    .luxe-err { color: #ff4757; font-size: 11px; margin-top: 4px; display: block; }
 
     @@media (max-width: 1100px) {
-        .premium-grid { grid-template-columns: 1fr; }
-        .sticky-sidebar { position: static; }
-        .featured-image-wrapper { height: 400px; }
+        .luxe-main-grid { grid-template-columns: 1fr; }
+        .luxe-sidebar { position: static; }
     }
 </style>
 
@@ -281,68 +241,102 @@
     [Parameter] public int Id { get; set; }
     private PropertyDto? property;
     private string? selectedPhotoUrl;
-    private ShowingRequest newShowing = new();
+    private ShowingRequest newShowing = new ShowingRequest();
+
+    private TimeSpan? bookingTime {
+        get => newShowing.Time.ToTimeSpan();
+        set => newShowing.Time = value.HasValue ? TimeOnly.FromTimeSpan(value.Value) : new TimeOnly(12, 0);
+    }
+
+    private MudTheme _luxeTheme = new MudTheme() {
+        PaletteDark = new PaletteDark() { 
+            Primary = "#f39c12", 
+            Surface = "#161616", 
+            Background = "#0d0d0d", 
+            Warning = "#f39c12",
+            AppbarBackground = "#0d0d0d"
+        }
+    };
+
+    private void HandlePhoneInput(ChangeEventArgs e)
+    {
+        string input = e.Value?.ToString() ?? "";
+        string digits = new string(input.Where(char.IsDigit).ToArray());
+
+        if (digits.Length > 0 && digits[0] != '7') 
+        {
+            if (digits[0] == '8') digits = "7" + digits.Substring(1);
+            else digits = "7" + digits;
+        }
+        
+        if (digits.Length == 0) digits = "7";
+        if (digits.Length > 11) digits = digits.Substring(0, 11);
+
+        string formatted = "+7";
+        if (digits.Length > 1)
+        {
+            var areaCode = digits.Substring(1, Math.Min(3, digits.Length - 1));
+            formatted += $" ({areaCode}";
+            if (digits.Length > 4)
+            {
+                formatted += ") ";
+                var firstPart = digits.Substring(4, Math.Min(3, digits.Length - 4));
+                formatted += firstPart;
+                if (digits.Length > 7)
+                {
+                    formatted += "-";
+                    var secondPart = digits.Substring(7, Math.Min(2, digits.Length - 7));
+                    formatted += secondPart;
+                    if (digits.Length > 9)
+                    {
+                        formatted += "-";
+                        var thirdPart = digits.Substring(9, Math.Min(2, digits.Length - 9));
+                        formatted += thirdPart;
+                    }
+                }
+            }
+        }
+        newShowing.Phone = formatted;
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        try
-        {
+        try {
             property = await Api.GetPropertyAsync(Id);
-            if (property?.PhotoUrls?.Any() == true)
-                selectedPhotoUrl = property.PhotoUrls.First();
-        }
-        catch { }
+            selectedPhotoUrl = property?.PhotoUrls?.FirstOrDefault();
+        } catch { }
     }
 
     private async Task SubmitShowing()
     {
-        var timeSpan = new TimeSpan(newShowing.Time.Hour, newShowing.Time.Minute, 0);
-
-        var request = new CreateShowingRequest
-        {
-            PropertyId = Id,
-            Date = newShowing.Date ?? DateTime.Today,
-            Time = timeSpan,
-            ClientName = newShowing.ClientName,
-            ClientPhone = newShowing.Phone,
-            Comments = newShowing.Comments
-        };
-
-        try
-        {
-            await Api.CreateShowingAsync(request);
-            await JsRuntime.InvokeVoidAsync("alert", "Ваша заявка принята! Агент перезвонит вам в ближайшее время.");
+        try {
+            await Api.CreateShowingAsync(new CreateShowingRequest {
+                PropertyId = Id,
+                Date = newShowing.Date ?? DateTime.Today,
+                Time = newShowing.Time.ToTimeSpan(),
+                ClientName = newShowing.FullName,
+                ClientPhone = newShowing.Phone,
+                Comments = newShowing.Comments
+            });
+            await DialogService.ShowMessageBox("Успех", "Заявка успешно отправлена!");
             newShowing = new ShowingRequest();
-        }
-        catch (Exception ex)
-        {
-            await JsRuntime.InvokeVoidAsync("alert", $"Ошибка: {ex.Message}");
+        } catch (Exception ex) {
+            Snackbar.Add("Ошибка: " + ex.Message, Severity.Error);
         }
     }
 
-    string TranslateStatus(string? status) => status switch
-    {
-        "Available" => "Доступно к просмотру",
-        "Reserved" => "В резерве",
-        "Sold" => "Объект продан",
-        _ => status?.ToUpper() ?? "Статус уточняется"
-    };
+    string TranslateStatus(string? status) => status == "Available" ? "Актуально" : "В продаже";
 
-    public class ShowingRequest
-    {
-        [Required(ErrorMessage = "Дата обязательна")]
+    public class ShowingRequest {
+        [Required(ErrorMessage = "Укажите ваше имя")]
+        public string FullName { get; set; } = "";
+        
+        [Required(ErrorMessage = "Укажите телефон")]
+        [RegularExpression(@"^\+7 \(\d{3}\) \d{3}-\d{2}-\d{2}$", ErrorMessage = "Введите корректный номер")]
+        public string Phone { get; set; } = "+7";
+        
         public DateTime? Date { get; set; } = DateTime.Today.AddDays(1);
-        
-        [Required(ErrorMessage = "Время обязательно")]
         public TimeOnly Time { get; set; } = new TimeOnly(12, 0);
-        
-        [Required(ErrorMessage = "Представьтесь, пожалуйста")]
-        public string ClientName { get; set; } = "";
-        
-        [Required(ErrorMessage = "Укажите номер телефона")]
-        [Phone(ErrorMessage = "Неверный формат телефона")]
-        public string Phone { get; set; } = "";
-        
         public string? Comments { get; set; }
     }
 }

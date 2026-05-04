@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AgencyRealEstate.API.Data;
 using AgencyRealEstate.API.Data.Models;
 using AgencyRealEstate.API.DTOs;
@@ -7,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AgencyRealEstate.API.Controllers;
 
-[Authorize(Roles = "Administrator,Manager,Realtor,Client")]
 [ApiController]
 [Route("api/[controller]")]
 public class PropertiesController : ControllerBase
@@ -19,8 +19,36 @@ public class PropertiesController : ControllerBase
         _context = context;
     }
 
+    /// <summary>Создание нового объекта (доступно риелтору, менеджеру, администратору)</summary>
+    [HttpPost]
+    [Authorize(Roles = "Administrator,Manager,Realtor")]
+    public async Task<IActionResult> Create([FromBody] CreatePropertyRequest request)
+    {
+        var property = new Property
+        {
+            Address = request.Address,
+            PropertyTypeId = request.PropertyTypeId,
+            TotalArea = request.TotalArea,
+            LivingArea = request.LivingArea,
+            Floor = request.Floor,
+            TotalFloors = request.TotalFloors,
+            Rooms = request.Rooms,
+            WallMaterialId = request.WallMaterialId,
+            Price = request.Price,
+            Description = request.Description,
+            PropertyStatusId = 1,   // "Available"
+            CreatedByUserId = GetCurrentUserId()
+        };
+
+        _context.Properties.Add(property);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { property.PropertyId });
+    }
+
+    /// <summary>Получение списка доступных объектов (для всех авторизованных пользователей)</summary>
     [HttpGet]
-    [HttpGet]
+    [Authorize]
     public async Task<ActionResult<List<PropertyDto>>> GetAll()
     {
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -30,7 +58,9 @@ public class PropertiesController : ControllerBase
             .Include(p => p.WallMaterial)
             .Include(p => p.PropertyStatus)
             .Include(p => p.PropertyPhotos)
-            .Where(p => !p.IsDeleted)
+            .Where(p => !p.IsDeleted
+                        && p.PropertyStatus.StatusName != "Sold"
+                        && p.PropertyStatus.StatusName != "Rented")
             .Select(p => new PropertyDto
             {
                 PropertyID = p.PropertyId,
@@ -54,7 +84,9 @@ public class PropertiesController : ControllerBase
         return Ok(properties);
     }
 
+    /// <summary>Детальная информация об объекте (для всех авторизованных)</summary>
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<ActionResult<PropertyDto>> GetById(int id)
     {
         var baseUrl = $"{Request.Scheme}://{Request.Host}";
@@ -64,7 +96,9 @@ public class PropertiesController : ControllerBase
             .Include(p => p.WallMaterial)
             .Include(p => p.PropertyStatus)
             .Include(p => p.PropertyPhotos)
-            .Where(p => !p.IsDeleted)
+            .Where(p => !p.IsDeleted
+                        && p.PropertyStatus.StatusName != "Sold"
+                        && p.PropertyStatus.StatusName != "Rented")
             .Select(p => new PropertyDto
             {
                 PropertyID = p.PropertyId,
@@ -85,9 +119,33 @@ public class PropertiesController : ControllerBase
             })
             .FirstOrDefaultAsync(p => p.PropertyID == id);
 
-        if (property == null) return NotFound();
+        if (property == null)
+            return NotFound();
+
         return Ok(property);
     }
 
+    // Вспомогательный метод для получения ID текущего пользователя из JWT
+    private int GetCurrentUserId()
+    {
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (userIdClaim == null)
+            throw new UnauthorizedAccessException("User ID not found in token");
+        return int.Parse(userIdClaim);
+    }
+}
 
+// DTO для создания объекта (можно вынести в отдельный файл)
+public class CreatePropertyRequest
+{
+    public string Address { get; set; }
+    public int PropertyTypeId { get; set; }
+    public decimal TotalArea { get; set; }
+    public decimal? LivingArea { get; set; }
+    public int? Floor { get; set; }
+    public int? TotalFloors { get; set; }
+    public int? Rooms { get; set; }
+    public int? WallMaterialId { get; set; }
+    public decimal? Price { get; set; }
+    public string? Description { get; set; }
 }

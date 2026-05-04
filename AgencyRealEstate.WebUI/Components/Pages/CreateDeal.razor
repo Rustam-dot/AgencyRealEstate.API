@@ -1,0 +1,295 @@
+﻿@page "/deals/create"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Client")]
+@using System.Net.Http.Json
+@using System.ComponentModel.DataAnnotations
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="elite-deal-layout">
+    <div class="ambient-glow"></div>
+    
+    <div class="page-wrapper">
+        <header class="form-header">
+            <button class="btn-back-link" @onclick='() => Navigation.NavigateTo("/my-showings")'>
+                <i class="fas fa-chevron-left"></i> Назад к показам
+            </button>
+            <h2 class="elite-title">Оформление сделки<span class="gold-dot">.</span></h2>
+            <p class="elite-subtitle">Финальный шаг к вашей новой недвижимости</p>
+        </header>
+
+        <div class="content-container">
+            @if (!isValid)
+            {
+                <div class="error-glass-card fade-in">
+                    <div class="error-icon-box">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                    <h3>Доступ ограничен</h3>
+                    <p>@errorMessage</p>
+                    <button class="btn-back-action" @onclick='() => Navigation.NavigateTo("/my-showings")'>
+                        Вернуться в личный кабинет
+                    </button>
+                </div>
+            }
+            else
+            {
+                <div class="deal-glass-card fade-in">
+                    <div class="card-identity">
+                        <div class="id-badge">ID ПОКАЗА: #@ShowingId</div>
+                        <div class="status-badge">ПОДТВЕРЖДЕНО</div>
+                    </div>
+
+                    <EditForm Model="dealModel" OnValidSubmit="SubmitDeal">
+                        <DataAnnotationsValidator />
+
+                        <div class="input-grid">
+                            @* Тип сделки *@
+                            <div class="form-group">
+                                <label><i class="fas fa-handshake"></i> Категория договора</label>
+                                <div class="select-luxe">
+                                    <select @bind="dealModel.DealTypeId">
+                                        <option value="11">Договор купли-продажи</option>
+                                        <option value="12">Долгосрочная аренда</option>
+                                        <option value="13">Краткосрочная аренда</option>
+                                    </select>
+                                    <i class="fas fa-chevron-down"></i>
+                                </div>
+                            </div>
+
+                            @* Сумма *@
+                            <div class="form-group">
+                                <label><i class="fas fa-coins"></i> Сумма сделки</label>
+                                <div class="input-luxe">
+                                    <InputNumber @bind-Value="dealModel.Amount" placeholder="0.00" />
+                                    <span class="currency">₽</span>
+                                </div>
+                                <ValidationMessage For="@(() => dealModel.Amount)" class="validation-msg" />
+                            </div>
+                        </div>
+
+                        <div class="guarantee-box">
+                            <i class="fas fa-info-circle"></i>
+                            <p>Нажимая кнопку, вы инициируете процесс подготовки официальных документов нашим юридическим отделом.</p>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(submitError))
+                        {
+                            <div class="error-banner">
+                                <i class="fas fa-exclamation-circle"></i> @submitError
+                            </div>
+                        }
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn-prime-submit">
+                                <span>Подтвердить и отправить</span>
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --gold-glow: rgba(243, 156, 18, 0.3);
+        --bg-dark: #0a0a0a;
+        --card-bg: #141414;
+        --glass-border: rgba(255, 255, 255, 0.08);
+    }
+
+    .elite-deal-layout {
+        background: var(--bg-dark); min-height: 100vh; color: #fff;
+        padding: 120px 20px 60px; position: relative; overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ambient-glow {
+        position: fixed; top: 0; left: 50%; width: 1000px; height: 600px;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.04) 0%, transparent 70%);
+        transform: translateX(-50%); pointer-events: none;
+    }
+
+    .page-wrapper { max-width: 700px; margin: 0 auto; position: relative; z-index: 5; }
+
+    /* HEADER */
+    .form-header { margin-bottom: 40px; }
+    .btn-back-link {
+        background: none; border: none; color: #555; cursor: pointer;
+        font-weight: 600; display: flex; align-items: center; gap: 8px;
+        margin-bottom: 20px; transition: 0.3s;
+    }
+    .btn-back-link:hover { color: var(--gold); }
+    .elite-title { font-size: 2.5rem; font-weight: 800; margin: 0; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: #666; margin-top: 10px; }
+
+    /* CARDS */
+    .deal-glass-card, .error-glass-card {
+        background: var(--card-bg); border-radius: 32px;
+        border: 1px solid var(--glass-border); padding: 50px;
+        box-shadow: 0 40px 80px rgba(0,0,0,0.5);
+    }
+
+    .card-identity { 
+        display: flex; justify-content: space-between; align-items: center;
+        margin-bottom: 40px; padding-bottom: 20px; border-bottom: 1px solid #222;
+    }
+    .id-badge { color: #555; font-weight: 800; font-family: monospace; letter-spacing: 1px; }
+    .status-badge { 
+        background: rgba(46, 204, 113, 0.1); color: #2ecc71; 
+        font-size: 0.7rem; font-weight: 900; padding: 6px 12px; border-radius: 6px;
+    }
+
+    /* FORM ELEMENTS */
+    .form-group { margin-bottom: 30px; }
+    .form-group label { display: block; color: #888; font-weight: 600; margin-bottom: 12px; font-size: 0.9rem; }
+    .form-group label i { color: var(--gold); margin-right: 8px; }
+
+    .select-luxe, .input-luxe { position: relative; }
+    
+    .select-luxe select, .input-luxe input {
+        width: 100%; background: #1a1a1a; border: 1px solid #333;
+        color: #fff; padding: 16px 20px; border-radius: 16px;
+        font-size: 1.1rem; outline: none; transition: 0.3s; appearance: none;
+    }
+
+    .select-luxe i { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: var(--gold); pointer-events: none; }
+    
+    .input-luxe .currency { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); color: #444; font-weight: 800; }
+
+    .select-luxe select:focus, .input-luxe input:focus {
+        border-color: var(--gold); box-shadow: 0 0 15px var(--gold-glow);
+    }
+
+    .guarantee-box {
+        background: rgba(255,255,255,0.02); border-radius: 16px; padding: 20px;
+        display: flex; gap: 15px; align-items: center; margin-bottom: 30px;
+    }
+    .guarantee-box i { color: #444; font-size: 1.2rem; }
+    .guarantee-box p { margin: 0; font-size: 0.85rem; color: #666; line-height: 1.5; }
+
+    .btn-prime-submit {
+        width: 100%; background: var(--gold); color: #000; border: none;
+        padding: 20px; border-radius: 18px; font-weight: 800; font-size: 1.1rem;
+        display: flex; align-items: center; justify-content: center; gap: 15px;
+        cursor: pointer; transition: 0.4s;
+    }
+    .btn-prime-submit:hover { background: #fff; transform: translateY(-3px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+    /* ERROR CARD */
+    .error-glass-card { text-align: center; }
+    .error-icon-box { 
+        width: 80px; height: 80px; background: rgba(243, 156, 18, 0.1); 
+        border-radius: 50%; display: flex; align-items: center; justify-content: center;
+        margin: 0 auto 30px; font-size: 2.5rem; color: var(--gold);
+    }
+    .btn-back-action {
+        margin-top: 30px; background: none; border: 1px solid var(--gold);
+        color: var(--gold); padding: 12px 30px; border-radius: 50px;
+        font-weight: 700; cursor: pointer; transition: 0.3s;
+    }
+    .btn-back-action:hover { background: var(--gold); color: #000; }
+
+    .error-banner {
+        background: rgba(231, 76, 60, 0.1); color: #e74c3c;
+        padding: 15px; border-radius: 12px; margin-bottom: 25px;
+        text-align: center; font-weight: 600; font-size: 0.9rem;
+    }
+
+    /* ANIMATIONS */
+    .fade-in { animation: fadeIn 0.6s ease-out; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+    @@media (max-width: 600px) {
+        .deal-glass-card { padding: 30px 20px; }
+        .elite-title { font-size: 2rem; }
+    }
+</style>
+
+@code {
+    [Parameter] [SupplyParameterFromQuery] public int ShowingId { get; set; }
+
+    private bool isValid;
+    private string? errorMessage;
+    private string? submitError;
+    private DealModel dealModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (ShowingId <= 0)
+        {
+            isValid = false;
+            errorMessage = "Некорректный идентификатор показа.";
+            return;
+        }
+
+        try
+        {
+            var showings = await Http.GetFromJsonAsync<List<MyShowingDto>>("showings/my");
+            var showing = showings?.FirstOrDefault(s => s.ShowingId == ShowingId);
+            if (showing == null)
+            {
+                errorMessage = "Показ не найден или у вас нет прав доступа к нему.";
+                return;
+            }
+
+            if (!showing.CanDeal)
+            {
+                errorMessage = "Сделка по данному объекту еще не подтверждена риелтором. Пожалуйста, ожидайте завершения осмотра.";
+                return;
+            }
+
+            isValid = true;
+        }
+        catch
+        {
+            errorMessage = "Сервис проверки временно недоступен. Попробуйте позже.";
+        }
+    }
+
+    private async Task SubmitDeal()
+    {
+        submitError = null;
+        try
+        {
+            var response = await Http.PostAsJsonAsync("deals", new
+            {
+                ShowingId = ShowingId,
+                dealModel.DealTypeId,
+                dealModel.Amount
+            });
+
+            if (response.IsSuccessStatusCode)
+            {
+                Navigation.NavigateTo("/my-showings", forceLoad: true);
+            }
+            else
+            {
+                var errorContent = await response.Content.ReadAsStringAsync();
+                submitError = !string.IsNullOrEmpty(errorContent) ? errorContent : "Произошла системная ошибка при формировании заявки.";
+            }
+        }
+        catch (Exception ex)
+        {
+            submitError = $"Сетевая ошибка: {ex.Message}";
+        }
+    }
+
+    public class DealModel
+    {
+        [Required] public int DealTypeId { get; set; } = 11;
+        [Required] [Range(1, 1000000000, ErrorMessage = "Укажите корректную сумму сделки")] 
+        public decimal Amount { get; set; }
+    }
+
+    public class MyShowingDto
+    {
+        public int ShowingId { get; set; }
+        public bool CanDeal { get; set; }
+    }
+}

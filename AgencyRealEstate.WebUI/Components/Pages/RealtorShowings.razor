@@ -1,0 +1,372 @@
+﻿@page "/realtor-showings"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator,Manager,Realtor")]
+@using System.Net.Http.Json
+@using System.Text.Json.Serialization
+@inject HttpClient Http
+
+<div class="elite-showings-layout">
+    <div class="ambient-glow"></div>
+
+    <div class="page-wrapper">
+        <header class="page-header">
+            <div class="header-text">
+                <h2 class="elite-title">Моё расписание<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">Управление назначенными показами и фиксация результатов</p>
+            </div>
+            <div class="stats-badge">
+                <i class="fas fa-briefcase"></i>
+                <span>@(assignedShowings?.Count ?? 0) активных</span>
+            </div>
+        </header>
+
+        @if (assignedShowings == null)
+        {
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <p>Синхронизация данных...</p>
+            </div>
+        }
+        else if (!assignedShowings.Any())
+        {
+            <div class="empty-state fade-in">
+                <div class="empty-icon-box">
+                    <i class="fas fa-clipboard-list"></i>
+                </div>
+                <h3>Нет назначенных задач</h3>
+                <p>В данный момент у вас нет активных показов. Проверьте вкладку «Свободные заявки».</p>
+            </div>
+        }
+        else
+        {
+            <div class="showing-grid">
+                @foreach (var showing in assignedShowings)
+                {
+                    <div class="showing-card luxe-card fade-in">
+                        <div class="card-inner">
+                            @* Левая колонка: Дата и время *@
+                            <div class="date-side">
+                                <div class="date-badge">
+                                    <span class="day">@showing.ShowingDateTime.Day</span>
+                                    <span class="month">@showing.ShowingDateTime.ToString("MMM").ToUpper()</span>
+                                </div>
+                                <div class="time-label">@showing.ShowingDateTime.ToString("HH:mm")</div>
+                                <div class="type-tag">@showing.PropertyTypeName</div>
+                            </div>
+
+                            @* Центр: Информация об объекте и клиенте *@
+                            <div class="content-side">
+                                <h4 class="property-title">
+                                    <i class="fas fa-map-marker-alt title-icon"></i> @showing.PropertyAddress
+                                </h4>
+                                
+                                <div class="client-card">
+                                    <div class="client-tooltip-wrapper">
+                                        @* Триггер (информация о клиенте) *@
+                                        <div class="client-info">
+                                            <div class="avatar-placeholder">
+                                                @(string.IsNullOrWhiteSpace(showing.ClientName) ? "C" : showing.ClientName[0].ToString())
+                                            </div>
+                                            <div>
+                                                <span class="client-name">@showing.ClientName</span>
+                                                <span class="client-phone">@showing.ClientPhone</span>
+                                            </div>
+                                        </div>
+
+                                        @* Всплывающее окно (Карточка клиента) *@
+                                        <div class="client-tooltip">
+                                            <div class="tooltip-header">
+                                                <div class="tooltip-avatar">
+                                                    @(string.IsNullOrWhiteSpace(showing.ClientName) ? "C" : showing.ClientName[0].ToString())
+                                                </div>
+                                                <span class="tooltip-badge">Карточка клиента</span>
+                                            </div>
+                                            <h5 class="tooltip-name">@showing.ClientName</h5>
+                                            
+                                            <div class="tooltip-detail">
+                                                <i class="fas fa-phone-alt"></i> @showing.ClientPhone
+                                            </div>
+
+                                            @if (!string.IsNullOrWhiteSpace(showing.ClientEmail))
+                                            {
+                                                <div class="tooltip-detail">
+                                                    <i class="fas fa-envelope"></i> @showing.ClientEmail
+                                                </div>
+                                            }
+
+                                            @if (!string.IsNullOrWhiteSpace(showing.ClientPassport))
+                                            {
+                                                <div class="tooltip-detail">
+                                                    <i class="fas fa-id-card"></i> @showing.ClientPassport
+                                                </div>
+                                            }
+
+                                            <div class="tooltip-detail">
+                                                <i class="fas fa-calendar-check"></i> Назначено: @showing.ShowingDateTime.ToString("dd.MM.yyyy HH:mm")
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="action-btns">
+                                        <a href="tel:@showing.ClientPhone" class="btn-action-circle" title="Позвонить">
+                                            <i class="fas fa-phone-alt"></i>
+                                        </a>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(showing.Comments))
+                                {
+                                    <div class="realtor-note">
+                                        <i class="fas fa-comment-dots"></i>
+                                        <p>@showing.Comments</p>
+                                    </div>
+                                }
+                            </div>
+
+                            @* Правая колонка: Управление (ПРЕМИАЛЬНЫЙ ВИД) *@
+                            <div class="control-side">
+                                <div class="status-selector-group">
+                                    <label>Результат встречи</label>
+                                    <div class="select-premium-wrapper">
+                                        <select @bind="showing.SelectedResultId">
+                                            <option value="" disabled selected>Установить статус</option>
+                                            <option value="1">Завершён</option>
+                                            <option value="2">Отказ</option>
+                                            <option value="3">Заинтересован</option>
+                                            <option value="4">Перенесён</option>
+                                            <option value="5">Неявка</option>
+                                        </select>
+                                        <i class="fas fa-angle-down"></i>
+                                    </div>
+                                </div>
+                                <button class="btn-save-premium" @onclick="() => SaveResult(showing)" disabled="@(showing.SelectedResultId == null)">
+                                    <span>Зафиксировать</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --bg-dark: #0a0a0a;
+        --bg-card: #141414;
+        --glass-border: rgba(255, 255, 255, 0.08);
+        --text-dim: #777;
+    }
+
+    .elite-showings-layout {
+        background: var(--bg-dark); min-height: 100vh; color: #fff;
+        padding: 120px 40px 60px; position: relative; overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ambient-glow {
+        position: fixed; top: -10%; left: -10%; width: 40%; height: 40%;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.05) 0%, transparent 70%);
+        pointer-events: none; z-index: 1;
+    }
+
+    .page-wrapper { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: var(--text-dim); margin-top: 8px; font-size: 1.1rem; }
+
+    .stats-badge {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
+        padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 12px;
+        color: var(--gold); font-weight: 700;
+    }
+
+    /* GRID & CARDS */
+    .showing-grid { display: flex; flex-direction: column; gap: 24px; }
+
+    .luxe-card {
+        background: var(--bg-card); border-radius: 24px; border: 1px solid var(--glass-border);
+        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+    .luxe-card:hover { transform: translateY(-4px); border-color: rgba(243, 156, 18, 0.3); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+    .card-inner { display: flex; padding: 30px; gap: 40px; align-items: stretch; }
+
+    /* DATE SIDE */
+    .date-side {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        min-width: 120px; padding-right: 40px; border-right: 1px solid rgba(255,255,255,0.05);
+    }
+    .date-badge .day { display: block; font-size: 2.5rem; font-weight: 900; line-height: 1; color: #fff; }
+    .date-badge .month { font-size: 0.9rem; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
+    .time-label { margin-top: 12px; font-weight: 800; font-size: 1.2rem; color: #aaa; }
+    .type-tag { 
+        margin-top: 15px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; 
+        background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; color: #888;
+        letter-spacing: 1px;
+    }
+
+    /* CONTENT SIDE */
+    .content-side { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+    .property-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 20px 0; color: #fff; display: flex; align-items: center; gap: 10px; }
+    .title-icon { color: var(--gold); font-size: 1.2rem; }
+
+    /* CLIENT CARD */
+    .client-card {
+        background: rgba(0,0,0,0.3); border-radius: 16px; padding: 15px 20px;
+        display: flex; justify-content: space-between; align-items: center; 
+        border: 1px solid rgba(255,255,255,0.04); width: max-content; min-width: 320px;
+        max-width: 100%; position: relative;
+    }
+
+    .client-tooltip-wrapper { position: relative; display: inline-flex; }
+
+    .client-info { display: flex; align-items: center; gap: 15px; cursor: help; }
+    .avatar-placeholder { 
+        width: 44px; height: 44px; background: rgba(243, 156, 18, 0.1); border-radius: 50%; 
+        display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;
+        color: var(--gold); border: 1px solid rgba(243, 156, 18, 0.2); 
+    }
+    .client-name { display: block; font-weight: 700; font-size: 1.1rem; color: #eee; }
+    .client-phone { display: block; font-size: 0.9rem; color: var(--text-dim); }
+
+    /* Tooltip */
+    .client-tooltip {
+        visibility: hidden; opacity: 0; position: absolute;
+        bottom: calc(100% + 15px); left: 0; transform: translateY(10px);
+        background: #1a1a1a; border: 1px solid rgba(243, 156, 18, 0.3);
+        padding: 20px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+        min-width: 300px; z-index: 9999; pointer-events: none;
+        transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        word-break: break-word;
+    }
+    
+    .client-tooltip-wrapper:hover .client-tooltip { visibility: visible; opacity: 1; transform: translateY(0); }
+
+    .client-tooltip::after {
+        content: ''; position: absolute; top: 100%; left: 20px;
+        border-width: 8px; border-style: solid;
+        border-color: rgba(243, 156, 18, 0.3) transparent transparent transparent;
+    }
+
+    .tooltip-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
+    .tooltip-avatar { width: 45px; height: 45px; background: var(--gold); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; }
+    .tooltip-badge { background: rgba(255,255,255,0.05); color: #888; font-size: 0.65rem; padding: 4px 10px; border-radius: 50px; text-transform: uppercase; letter-spacing: 1px; }
+    .tooltip-name { margin: 0 0 12px 0; font-size: 1.2rem; font-weight: 800; }
+    .tooltip-detail { font-size: 0.9rem; color: #bbb; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
+    .tooltip-detail i { color: var(--gold); width: 14px; text-align: center; }
+
+    /* CONTROLS (SELECT & BUTTON) */
+    .control-side { width: 260px; display: flex; flex-direction: column; justify-content: center; gap: 15px; }
+    
+    .status-selector-group label { font-size: 0.75rem; font-weight: 800; color: #555; margin-bottom: 8px; display: block; text-transform: uppercase; }
+    
+    .select-premium-wrapper { position: relative; }
+    
+    .select-premium-wrapper select {
+        width: 100%; background: rgba(255, 255, 255, 0.03); 
+        border: 1px solid rgba(255, 255, 255, 0.1); color: #fff;
+        padding: 15px 40px 15px 15px; border-radius: 12px; outline: none; cursor: pointer;
+        appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important;
+        font-weight: 500; transition: 0.3s;
+    }
+
+    .select-premium-wrapper select:focus { border-color: var(--gold); background: rgba(0,0,0,0.3); }
+
+    .select-premium-wrapper i {
+        position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
+        color: var(--gold); pointer-events: none; transition: 0.3s;
+    }
+
+    .select-premium-wrapper:focus-within i { transform: translateY(-50%) rotate(180deg); }
+
+    .btn-save-premium {
+        background: transparent; color: var(--gold); border: 1px solid var(--gold); 
+        padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; 
+        transition: all 0.3s ease; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;
+    }
+
+    .btn-save-premium:hover:not(:disabled) { background: var(--gold); color: #000; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(243,156,18,0.2); }
+    .btn-save-premium:disabled { opacity: 0.2; cursor: not-allowed; border-color: #444; color: #666; }
+
+    /* UTILS */
+    .btn-action-circle {
+        width: 44px; height: 44px; border-radius: 50%; background: rgba(243, 156, 18, 0.1);
+        color: var(--gold); display: flex; align-items: center; justify-content: center;
+        text-decoration: none; transition: 0.3s;
+    }
+    .btn-action-circle:hover { background: var(--gold); color: #000; transform: scale(1.1); }
+
+    .realtor-note { margin-top: 20px; display: flex; gap: 12px; color: #888; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border-left: 3px solid #333; }
+    .realtor-note p { margin: 0; font-size: 0.95rem; font-style: italic; }
+
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    @@media (max-width: 950px) {
+        .card-inner { flex-direction: column; }
+        .date-side { border-right: none; border-bottom: 1px solid #222; padding: 0 0 20px 0; width: 100%; flex-direction: row; justify-content: space-between; }
+        .control-side { width: 100%; }
+    }
+</style>
+
+@code {
+    private List<AssignedShowingDto>? assignedShowings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAssigned();
+    }
+
+    private async Task LoadAssigned()
+    {
+        try
+        {
+            await Task.Delay(300); 
+            // УБРАЛ "api/" перед showings, так как он обычно уже в BaseAddress
+            assignedShowings = await Http.GetFromJsonAsync<List<AssignedShowingDto>>("showings/assigned");
+        }
+        catch (Exception ex)
+        {
+            // Для отладки: выведите ошибку в консоль браузера (F12)
+            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
+            assignedShowings = new();
+        }
+    }
+
+    private async Task SaveResult(AssignedShowingDto showing)
+    {
+        if (showing.SelectedResultId == null) return;
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"showings/{showing.ShowingId}/result", new
+            {
+                ResultId = showing.SelectedResultId.Value,
+                Comments = showing.Comments
+            });
+
+            if (response.IsSuccessStatusCode) await LoadAssigned();
+        }
+        catch { }
+    }
+
+    public class AssignedShowingDto
+    {
+     
+        public int ShowingId { get; set; }
+        public DateTime ShowingDateTime { get; set; }
+        public string PropertyAddress { get; set; } = "";
+        public string PropertyTypeName { get; set; } = "";  
+        public string ClientName { get; set; } = "";
+        public string ClientPhone { get; set; } = "";
+        public string? ClientEmail { get; set; }        
+        public string? ClientPassport { get; set; }    
+        public string? Comments { get; set; }
+        public byte? SelectedResultId { get; set; }
+    }
+}

@@ -57,7 +57,7 @@
 
     private void HandleFileSelection(InputFileChangeEventArgs e)
     {
-        // Вызываем GetMultipleFiles, максимум 10 файлов
+        
         selectedFiles = e.GetMultipleFiles(10);
         message = null;
     }
@@ -78,14 +78,14 @@
                 content.Add(fileContent, "files", file.Name);
             }
 
-            // HttpClient уже содержит /api/ в базовом адресе, поэтому просто images/upload/...
+          
             var response = await Http.PostAsync($"images/upload/{PropertyId}", content);
             if (response.IsSuccessStatusCode)
             {
                 message = "Фото загружены!";
                 selectedFiles = null;
                 await OnPhotosUploaded.InvokeAsync();
-                // Закрываем окно через 2 секунды
+               
                 _ = Task.Run(async () =>
                 {
                     await Task.Delay(2000);

@@ -28,5 +28,15 @@ public class ApiClient
         var response = await _http.PostAsJsonAsync("showings", request);
         response.EnsureSuccessStatusCode();
     }
+    public async Task<ProfileDto> GetProfileAsync()
+    {
+        return await _http.GetFromJsonAsync<ProfileDto>("profile");
+    }
+
+    public async Task UpdateProfileAsync(UpdateProfileRequest request)
+    {
+        var response = await _http.PutAsJsonAsync("profile", request);
+        response.EnsureSuccessStatusCode();
+    }
 
 }

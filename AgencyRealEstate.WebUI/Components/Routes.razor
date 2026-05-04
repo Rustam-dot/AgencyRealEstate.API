@@ -4,12 +4,11 @@
 <CascadingAuthenticationState>
     <Router AppAssembly="@typeof(Program).Assembly">
         <Found Context="routeData">
-            @* Добавляем AllowAnonymous к странице логина в самом компоненте Login.razor *@
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
                     @if (context.User.Identity?.IsAuthenticated == true)
                     {
-                        @* Пользователь вошел, но у него нет прав (например, риелтор лезет в админку) *@
+                        
                         <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
                              <h2>Доступ ограничен<span style="color: #f39c12;">.</span></h2>
                              <p>У вашей учетной записи недостаточно привилегий.</p>
@@ -18,8 +17,7 @@
                     }
                     else
                     {
-                        @* Пользователь НЕ вошел — просто отправляем на логин *@
-                        @* Важно: страница Login.razor должна иметь [AllowAnonymous] *@
+                      
                         <RedirectToLogin />
                     }
                 </NotAuthorized>
@@ -37,7 +35,7 @@
 </CascadingAuthenticationState>
 
 @code {
-    // Вспомогательный компонент для чистого редиректа
+   
     private class RedirectToLogin : ComponentBase
     {
         [Inject] protected NavigationManager Nav { get; set; } = default!;

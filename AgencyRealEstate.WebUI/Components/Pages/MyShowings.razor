@@ -1,0 +1,238 @@
+﻿@page "/showings"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator,Manager,Realtor")]
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject NavigationManager Navigation
+
+<div class="elite-showings-layout">
+    <div class="ambient-glow"></div>
+
+    <div class="page-wrapper">
+        <header class="page-header">
+            <div class="header-text">
+                <h2 class="elite-title">Биржа показов<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">Свободные заявки от клиентов, доступные для бронирования</p>
+            </div>
+            <div class="stats-badge">
+                <i class="fas fa-bullhorn"></i>
+                <span>@(showings?.Count ?? 0) новых</span>
+            </div>
+        </header>
+
+        @if (showings == null)
+        {
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <p>Синхронизация потока заявок...</p>
+            </div>
+        }
+        else if (!showings.Any())
+        {
+            <div class="empty-state">
+                <div class="empty-icon-box">
+                    <i class="fas fa- Inbox"></i>
+                </div>
+                <h3>Лист ожидания пуст</h3>
+                <p>На данный момент все заявки разобраны коллегами. Загляните позже.</p>
+            </div>
+        }
+        else
+        {
+            <div class="showing-grid">
+                @foreach (var showing in showings)
+                {
+                    <div class="showing-card luxe-card fade-in">
+                        <div class="card-inner">
+                            @* Таймлайн блок *@
+                            <div class="time-block">
+                                <div class="date-badge">
+                                    <span class="day">@showing.ShowingDateTime.ToString("dd")</span>
+                                    <span class="month">@showing.ShowingDateTime.ToString("MMM").ToUpper()</span>
+                                </div>
+                                <div class="time-label">@showing.ShowingDateTime.ToString("HH:mm")</div>
+                            </div>
+
+                            @* Информация об объекте *@
+                            <div class="content-block">
+                                <div class="address-header">
+                                    <i class="fas fa-map-marked-alt"></i>
+                                    <h4>@showing.PropertyAddress</h4>
+                                </div>
+
+                                <div class="client-mini-card">
+                                    <div class="info-group">
+                                        <label>Заявитель</label>
+                                        <p>@showing.ClientName</p>
+                                    </div>
+                                    <div class="info-group">
+                                        <label>Контакт</label>
+                                        <p class="phone-link">@showing.ClientPhone</p>
+                                    </div>
+                                </div>
+
+                                @if (!string.IsNullOrWhiteSpace(showing.Comments))
+                                {
+                                    <div class="comment-bubble">
+                                        <i class="fas fa-comment-dots"></i>
+                                        <p>@showing.Comments</p>
+                                    </div>
+                                }
+                            </div>
+
+                            @* Действие *@
+                            <div class="action-block">
+                                <button class="btn-claim-premium" @onclick="() => AcceptShowing(showing.ShowingId)">
+                                    <span>Взять показ</span>
+                                    <i class="fas fa-calendar-plus"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --bg-dark: #0a0a0a;
+        --bg-card: #141414;
+        --border-glass: rgba(255, 255, 255, 0.06);
+        --text-dim: #666;
+    }
+
+    .elite-showings-layout {
+        background: var(--bg-dark); min-height: 100vh; color: #fff;
+        padding: 120px 40px 60px; position: relative; overflow: hidden;
+    }
+
+    .ambient-glow {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at 50% 0%, rgba(243, 156, 18, 0.04) 0%, transparent 60%);
+        pointer-events: none;
+    }
+
+    .page-wrapper { max-width: 1100px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .elite-title { font-size: 2.6rem; font-weight: 900; margin: 0; letter-spacing: -1px; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: var(--text-dim); margin-top: 5px; }
+
+    .stats-badge {
+        background: rgba(243, 156, 18, 0.05); border: 1px solid rgba(243, 156, 18, 0.2);
+        padding: 10px 20px; border-radius: 50px; display: flex; align-items: center; gap: 10px;
+        color: var(--gold); font-weight: 700; font-size: 0.9rem;
+    }
+
+    /* GRID & CARDS */
+    .showing-grid { display: grid; gap: 18px; }
+
+    .luxe-card {
+        background: var(--bg-card); border-radius: 22px; border: 1px solid var(--border-glass);
+        transition: 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+    .luxe-card:hover { border-color: rgba(243, 156, 18, 0.3); transform: translateY(-3px); box-shadow: 0 15px 30px rgba(0,0,0,0.4); }
+
+    .card-inner { display: flex; padding: 25px 35px; align-items: center; gap: 40px; }
+
+    /* TIME BLOCK */
+    .time-block { text-align: center; min-width: 80px; padding-right: 40px; border-right: 1px solid #222; }
+    .date-badge .day { display: block; font-size: 2rem; font-weight: 900; line-height: 1; color: #fff; }
+    .date-badge .month { font-size: 0.75rem; font-weight: 800; color: var(--gold); text-transform: uppercase; }
+    .time-label { margin-top: 8px; font-weight: 700; font-size: 1.1rem; color: #888; }
+
+    /* CONTENT BLOCK */
+    .content-block { flex: 1; }
+    .address-header { display: flex; align-items: center; gap: 12px; margin-bottom: 15px; }
+    .address-header i { color: var(--gold); font-size: 1.1rem; }
+    .address-header h4 { font-size: 1.3rem; font-weight: 700; margin: 0; }
+
+    .client-mini-card { display: flex; gap: 30px; background: rgba(0,0,0,0.2); padding: 12px 20px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.02); }
+    .info-group label { display: block; font-size: 0.65rem; color: #444; text-transform: uppercase; font-weight: 800; margin-bottom: 2px; }
+    .info-group p { margin: 0; font-size: 0.95rem; font-weight: 600; color: #bbb; }
+    .phone-link { color: var(--gold) !important; opacity: 0.8; }
+
+    .comment-bubble { margin-top: 15px; display: flex; gap: 10px; color: #666; font-style: italic; font-size: 0.9rem; }
+    .comment-bubble i { margin-top: 3px; font-size: 0.8rem; }
+
+    /* ACTION BLOCK */
+    .action-block { min-width: 180px; }
+    .btn-claim-premium {
+        width: 100%; background: var(--gold); color: #000; border: none; padding: 14px;
+        border-radius: 14px; font-weight: 800; cursor: pointer; transition: 0.3s;
+        display: flex; align-items: center; justify-content: center; gap: 10px;
+    }
+    .btn-claim-premium:hover { background: #fff; transform: scale(1.02); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.15); }
+
+    /* LOADER & EMPTY */
+    .luxe-loader { text-align: center; padding: 120px 0; color: #333; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(243, 156, 18, 0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+    
+    .empty-state { text-align: center; padding: 100px 20px; background: rgba(255,255,255,0.01); border-radius: 30px; border: 1px dashed #222; }
+    .empty-icon-box { font-size: 3.5rem; color: #1a1a1a; margin-bottom: 20px; }
+
+    .fade-in { animation: fadeIn 0.5s ease forwards; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    @@media (max-width: 900px) {
+        .card-inner { flex-direction: column; text-align: center; gap: 25px; padding: 30px; }
+        .time-block { border-right: none; border-bottom: 1px solid #222; padding: 0 0 20px 0; width: 100%; flex-direction: row; display: flex; justify-content: center; gap: 20px; }
+        .address-header { justify-content: center; }
+        .client-mini-card { justify-content: center; }
+        .action-block { width: 100%; }
+    }
+</style>
+
+@code {
+    private List<MyShowingDto>? showings;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadShowings();
+    }
+
+    private async Task LoadShowings()
+    {
+        try
+        {
+            await Task.Delay(400); 
+            showings = await Http.GetFromJsonAsync<List<MyShowingDto>>("showings/available");
+        }
+        catch
+        {
+            showings = new();
+        }
+    }
+
+    private async Task AcceptShowing(int id)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"showings/{id}/accept", null);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadShowings();
+            }
+        }
+        catch { }
+    }
+
+    public class MyShowingDto
+    {
+        public int ShowingId { get; set; }
+        public DateTime ShowingDateTime { get; set; }
+        public string PropertyAddress { get; set; } = "";
+        public string ClientName { get; set; } = "";
+        public string ClientPhone { get; set; } = "";
+        public string? Comments { get; set; }
+        public string? RealtorName { get; set; }
+        public string? ResultName { get; set; }
+        public bool CanDeal { get; set; }
+    }
+}

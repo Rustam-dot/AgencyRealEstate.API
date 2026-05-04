@@ -1,5 +1,6 @@
 ﻿namespace AgencyRealEstate.WebUI.Models;
 
+
 public class CreateShowingRequest
 {
     public int PropertyId { get; set; }

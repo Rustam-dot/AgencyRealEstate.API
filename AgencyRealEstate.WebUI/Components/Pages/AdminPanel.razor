@@ -6,63 +6,56 @@
 @inject HttpClient Http
 @inject NavigationManager Navigation
 
-<div class="admin-container">
-    <div class="admin-content">
-        @* ВЕРХНЯЯ ПАНЕЛЬ *@
-        <div class="admin-header">
+<div class="elite-admin-layout">
+    @* Фоновое свечение для объема *@
+    <div class="ambient-glow"></div>
+
+    <div class="admin-wrapper">
+        <header class="elite-header">
             <div class="header-text">
-                <h2 class="admin-title">Команда Elite Estates<span class="accent-dot">.</span></h2>
-                <p class="admin-subtitle">Управление доступом и привилегиями сотрудников</p>
+                <h2 class="elite-title">Команда Elite Estates<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">Контроль доступа и управление привилегиями сотрудников</p>
             </div>
-            <button class="add-user-btn" @onclick="OpenAddModal">
-                <div class="btn-icon"><i class="fas fa-user-plus"></i></div>
+            <button class="btn-gold-main" @onclick="OpenAddModal">
+                <i class="fas fa-plus"></i>
                 <span>Новый сотрудник</span>
             </button>
-        </div>
+        </header>
 
-        @* СЕТКА ПОЛЬЗОВАТЕЛЕЙ *@
         @if (users == null)
         {
-            <div class="loading-wrap">
-                <div class="luxury-spinner"></div>
-                <p>Загрузка данных...</p>
-            </div>
-        }
-        else if (!users.Any())
-        {
-            <div class="empty-state">
-                <i class="fas fa-users-slash"></i>
-                <p>В штате пока нет сотрудников</p>
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <span>Загрузка базы данных...</span>
             </div>
         }
         else
         {
-            <div class="users-grid">
+            <div class="staff-grid">
                 @foreach (var user in users)
                 {
-                    <div class="user-card" @onclick="() => OpenEditModal(user)">
-                        <div class="role-line @user.Role.ToLower()"></div>
-                        
-                        <div class="user-card-body">
-                            <div class="avatar-box">
-                                <img src="https://ui-avatars.com/api/?name=@user.Login&background=252525&color=f39c12&bold=true" alt="Avatar" />
-                                <div class="status-ring @(user.IsActive ? "active" : "blocked")"></div>
-                            </div>
-                            
-                            <div class="info-box">
-                                <h4 class="login-name">@user.Login</h4>
-                                <p class="email-text">@user.Email</p>
-                                
-                                <div class="tags-row">
-                                    <span class="badge-role @user.Role.ToLower()">@user.Role</span>
-                                    <span class="badge-date"><i class="far fa-calendar-alt"></i> @user.CreatedAt.ToString("dd.MM.yyyy")</span>
+                    <div class="staff-card" @onclick="() => OpenEditModal(user)">
+                        <div class="status-line @user.Role.ToLower()"></div>
+                        <div class="card-inner">
+                            <div class="user-identity">
+                                <div class="avatar-wrapper">
+                                    <img src="https://ui-avatars.com/api/?name=@user.Login&background=1a1a1a&color=f39c12&bold=true" />
+                                    <div class="online-indicator @(user.IsActive ? "active" : "inactive")"></div>
+                                </div>
+                                <div class="user-info">
+                                    <h4 class="user-name">@user.Login</h4>
+                                    <p class="user-email">@user.Email</p>
                                 </div>
                             </div>
+                            
+                            <div class="meta-row">
+                                <span class="role-pill @user.Role.ToLower()">@user.Role</span>
+                                <span class="user-id">ID: #@user.UserId</span>
+                            </div>
                         </div>
-                        
-                        <div class="card-footer">
-                            <span>ID: #@user.UserId</span>
-                            <span class="edit-link">Настроить <i class="fas fa-chevron-right"></i></span>
+                        <div class="card-action">
+                            <span>Управление доступом</span>
+                            <i class="fas fa-angle-right"></i>
                         </div>
                     </div>
                 }
@@ -71,82 +64,74 @@
     </div>
 </div>
 
-@* МОДАЛЬНОЕ ОКНО (ОБЩЕЕ ДЛЯ ДОБАВЛЕНИЯ И ПРАВКИ) *@
+@* Единое модальное окно в стиле Luxury *@
 @if (selectedUser != null || isAdding)
 {
-    <div class="modal-backdrop" @onclick="CloseModals">
-        <div class="luxury-modal" @onclick:stopPropagation="true">
-            <div class="modal-top">
+    <div class="luxe-overlay" @onclick="CloseModals">
+        <div class="luxe-modal" @onclick:stopPropagation="true">
+            <div class="modal-header">
                 <h3>@(isAdding ? "Регистрация специалиста" : "Параметры доступа")</h3>
-                <button class="close-x" @onclick="CloseModals">&times;</button>
+                <button class="btn-close" @onclick="CloseModals">&times;</button>
             </div>
 
-            <div class="modal-main">
+            <div class="modal-body">
                 @if (isAdding)
                 {
                     <EditForm Model="addModel" OnValidSubmit="CreateUser">
                         <DataAnnotationsValidator />
-                        <div class="elite-form">
-                            <div class="input-group">
+                        <div class="form-container">
+                            <div class="elite-group">
                                 <label>Логин в системе</label>
-                                <InputText @bind-Value="addModel.Login" class="luxury-input" placeholder="Введите логин..." />
-                                <ValidationMessage For="@(() => addModel.Login)" class="val-msg" />
+                                <InputText @bind-Value="addModel.Login" class="elite-input" placeholder="Введите логин..." />
+                                <ValidationMessage For="@(() => addModel.Login)" class="val-error" />
                             </div>
-
-                            <div class="input-group">
+                            <div class="elite-group">
                                 <label>Электронная почта</label>
-                                <InputText @bind-Value="addModel.Email" class="luxury-input" placeholder="email@elite.ru" />
+                                <InputText @bind-Value="addModel.Email" class="elite-input" placeholder="example@elite.ru" />
                             </div>
-
-                            <div class="input-group">
+                            <div class="elite-group">
                                 <label>Временный пароль</label>
-                                <InputText @bind-Value="addModel.Password" type="password" class="luxury-input" placeholder="••••••••" />
+                                <InputText @bind-Value="addModel.Password" type="password" class="elite-input" placeholder="••••••••" />
                             </div>
-
-                            <div class="input-group">
-                                <label>Должность</label>
-                                <select @bind="addModel.RoleId" class="luxury-input">
-                                    <option value="" disabled selected>Выберите роль</option>
+                            <div class="elite-group">
+                                <label>Уровень доступа</label>
+                                <select @bind="addModel.RoleId" class="elite-input elite-select">
+                                    <option value="" disabled selected>Выберите роль...</option>
                                     <option value="1">Администратор</option>
                                     <option value="2">Менеджер</option>
                                     <option value="3">Риелтор</option>
                                 </select>
                             </div>
-                        </div>
-                        <div class="modal-actions">
-                            <button type="submit" class="save-btn">Активировать аккаунт</button>
+                            <button type="submit" class="btn-gold-submit">Активировать аккаунт</button>
                         </div>
                     </EditForm>
                 }
                 else if (selectedUser != null)
                 {
-                    <div class="edit-profile-layout">
-                        <div class="profile-preview">
-                            <div class="avatar-large">@selectedUser.Login.Substring(0, 1).ToUpper()</div>
-                            <div class="profile-status">
-                                <span class="status-pill @(selectedUser.IsActive ? "ok" : "warn")">
-                                    @(selectedUser.IsActive ? "Доступ открыт" : "Заблокирован")
-                                </span>
-                            </div>
+                    <div class="profile-edit-view">
+                        <div class="profile-header">
+                            <div class="avatar-big">@selectedUser.Login.Substring(0, 1).ToUpper()</div>
+                            <span class="status-badge @(selectedUser.IsActive ? "ok" : "blocked")">
+                                @(selectedUser.IsActive ? "Доступ активен" : "Доступ ограничен")
+                            </span>
                         </div>
 
                         <EditForm Model="editModel" OnValidSubmit="SaveChanges">
-                            <div class="elite-form">
-                                <div class="input-group">
+                            <div class="form-container">
+                                <div class="elite-group">
                                     <label>Обновить логин</label>
-                                    <InputText @bind-Value="editModel.NewLogin" class="luxury-input" />
+                                    <InputText @bind-Value="editModel.NewLogin" class="elite-input" />
                                 </div>
-                                <div class="input-group">
-                                    <label>Новый пароль (если требуется)</label>
-                                    <InputText @bind-Value="editModel.NewPassword" type="password" class="luxury-input" />
+                                <div class="elite-group">
+                                    <label>Сменить пароль</label>
+                                    <InputText @bind-Value="editModel.NewPassword" type="password" class="elite-input" placeholder="Оставьте пустым, если не меняете" />
                                 </div>
-                            </div>
-
-                            <div class="modal-actions-between">
-                                <button type="button" class="block-btn" @onclick="() => ToggleActive(selectedUser)">
-                                    @(selectedUser.IsActive ? "Заблокировать" : "Разблокировать")
-                                </button>
-                                <button type="submit" class="save-btn">Применить</button>
+                                <div class="modal-footer-btns">
+                                    <button type="button" class="btn-outline-danger" @onclick="() => ToggleActive(selectedUser)">
+                                        @(selectedUser.IsActive ? "Заблокировать" : "Разблокировать")
+                                    </button>
+                                    <button type="submit" class="btn-gold-submit">Сохранить</button>
+                                </div>
                             </div>
                         </EditForm>
                     </div>
@@ -158,184 +143,145 @@
 
 <style>
     :root {
-        --accent: #f39c12;
-        --bg: #0f0f0f;
-        --card-bg: #1a1a1a;
-        --text-dim: #888;
-        --admin-color: #f39c12;
-        --manager-color: #3498db;
-        --realtor-color: #2ecc71;
+        --gold: #f39c12;
+        --gold-dark: #d68910;
+        --bg-main: #0a0a0a;
+        --bg-card: #141414;
+        --bg-input: #1c1c1c;
+        --text-main: #ffffff;
+        --text-dim: #777777;
+        --radius: 16px;
+        --transition: 0.3s cubic-bezier(0.25, 0.1, 0.25, 1);
     }
 
-    .admin-container {
-        background: var(--bg);
+    .elite-admin-layout {
+        background: var(--bg-main);
         min-height: 100vh;
-        padding-top: 120px;
-        color: #fff;
+        color: var(--text-main);
+        padding: 100px 40px 60px;
+        position: relative;
+        overflow: hidden;
     }
 
-    .admin-content { max-width: 1400px; margin: 0 auto; padding: 0 40px; }
+    .ambient-glow {
+        position: fixed; top: -10%; right: -10%; width: 500px; height: 500px;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.05) 0%, transparent 70%);
+        pointer-events: none;
+    }
+
+    .admin-wrapper { max-width: 1400px; margin: 0 auto; position: relative; z-index: 2; }
 
     /* HEADER */
-    .admin-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 60px;
-    }
-    .admin-title { font-size: 2.5rem; font-weight: 800; margin: 0; }
-    .accent-dot { color: var(--accent); }
-    .admin-subtitle { color: var(--text-dim); margin-top: 10px; font-size: 1.1rem; }
+    .elite-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: var(--text-dim); font-size: 1.1rem; margin-top: 10px; }
 
-    .add-user-btn {
-        background: var(--accent);
-        border: none;
-        padding: 5px 25px 5px 5px;
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        gap: 15px;
-        cursor: pointer;
-        font-weight: 700;
-        transition: 0.3s;
+    .btn-gold-main {
+        background: var(--gold); color: #000; border: none;
+        padding: 14px 28px; border-radius: var(--radius);
+        font-weight: 800; display: flex; align-items: center; gap: 12px;
+        cursor: pointer; transition: var(--transition);
     }
-    .btn-icon {
-        background: rgba(0,0,0,0.15);
-        width: 45px; height: 45px;
-        border-radius: 10px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
+    .btn-gold-main:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2); }
+
+    /* GRID & CARDS */
+    .staff-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 25px; }
+
+    .staff-card {
+        background: var(--bg-card); border-radius: var(--radius);
+        border: 1px solid rgba(255,255,255,0.05); overflow: hidden;
+        cursor: pointer; transition: var(--transition);
     }
-    .add-user-btn:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2); }
+    .staff-card:hover { transform: translateY(-5px); border-color: rgba(243, 156, 18, 0.3); background: #1a1a1a; }
 
-    /* USERS GRID */
-    .users-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-        gap: 30px;
-    }
+    .status-line { height: 4px; width: 100%; }
+    .status-line.administrator { background: var(--gold); }
+    .status-line.manager { background: #3498db; }
+    .status-line.realtor { background: #2ecc71; }
 
-    .user-card {
-        background: var(--card-bg);
-        border-radius: 20px;
-        overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.03);
-        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-        cursor: pointer;
-        position: relative;
-    }
-    .user-card:hover {
-        transform: translateY(-8px);
-        border-color: rgba(243, 156, 18, 0.3);
-        background: #222;
-    }
-
-    .role-line { height: 4px; width: 100%; }
-    .role-line.administrator { background: var(--admin-color); }
-    .role-line.manager { background: var(--manager-color); }
-    .role-line.realtor { background: var(--realtor-color); }
-
-    .user-card-body { padding: 30px; display: flex; gap: 20px; }
-
-    .avatar-box { position: relative; width: 70px; height: 70px; }
-    .avatar-box img { width: 100%; border-radius: 15px; border: 2px solid #333; }
+    .card-inner { padding: 30px; }
+    .user-identity { display: flex; gap: 20px; align-items: center; margin-bottom: 25px; }
     
-    .status-ring {
-        position: absolute; bottom: -5px; right: -5px;
-        width: 18px; height: 18px; border-radius: 50%;
-        border: 3px solid var(--card-bg);
+    .avatar-wrapper { position: relative; }
+    .avatar-wrapper img { width: 64px; height: 64px; border-radius: 14px; border: 1px solid #333; }
+    .online-indicator {
+        position: absolute; bottom: -4px; right: -4px; width: 16px; height: 16px;
+        border-radius: 50%; border: 3px solid var(--bg-card);
     }
-    .status-ring.active { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
-    .status-ring.blocked { background: #e74c3c; }
+    .online-indicator.active { background: #2ecc71; box-shadow: 0 0 10px #2ecc71; }
+    .online-indicator.inactive { background: #e74c3c; }
 
-    .login-name { margin: 0; font-size: 1.2rem; font-weight: 700; }
-    .email-text { color: var(--text-dim); font-size: 0.9rem; margin: 5px 0 15px 0; }
+    .user-name { margin: 0; font-size: 1.3rem; font-weight: 700; }
+    .user-email { color: var(--text-dim); font-size: 0.9rem; margin-top: 4px; }
 
-    .tags-row { display: flex; gap: 10px; }
-    .badge-role {
-        padding: 4px 10px; border-radius: 6px; font-size: 0.7rem;
-        font-weight: 800; text-transform: uppercase;
+    .meta-row { display: flex; justify-content: space-between; align-items: center; }
+    .role-pill {
+        padding: 5px 12px; border-radius: 8px; font-size: 0.7rem; font-weight: 800;
+        text-transform: uppercase; background: rgba(255,255,255,0.05);
     }
-    .badge-role.administrator { background: rgba(243, 156, 18, 0.1); color: var(--admin-color); }
-    .badge-role.manager { background: rgba(52, 152, 219, 0.1); color: var(--manager-color); }
-    .badge-role.realtor { background: rgba(46, 204, 113, 0.1); color: var(--realtor-color); }
+    .role-pill.administrator { color: var(--gold); }
+    .user-id { color: #444; font-size: 0.8rem; font-family: monospace; }
 
-    .badge-date { font-size: 0.8rem; color: #555; display: flex; align-items: center; gap: 5px; }
-
-    .card-footer {
-        background: rgba(0,0,0,0.2);
-        padding: 15px 30px;
-        display: flex;
-        justify-content: space-between;
-        font-size: 0.8rem;
-        color: #555;
+    .card-action {
+        background: rgba(0,0,0,0.2); padding: 15px 30px;
+        display: flex; justify-content: space-between; color: var(--gold);
+        font-weight: 700; font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.02);
     }
-    .edit-link { color: var(--accent); font-weight: 600; }
 
-    /* MODALS */
-    .modal-backdrop {
+    /* MODAL */
+    .luxe-overlay {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-        background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
-        display: flex; align-items: center; justify-content: center; z-index: 10001;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(12px);
+        display: flex; align-items: center; justify-content: center; z-index: 1000;
     }
 
-    .luxury-modal {
-        background: #181818; width: 100%; max-width: 550px;
+    .luxe-modal {
+        background: var(--bg-card); width: 100%; max-width: 500px;
         border-radius: 24px; border: 1px solid rgba(255,255,255,0.08);
-        box-shadow: 0 40px 100px rgba(0,0,0,0.8);
-        animation: slideUp 0.4s ease-out;
+        box-shadow: 0 30px 60px rgba(0,0,0,0.5); animation: modalIn 0.4s ease-out;
     }
 
-    @@keyframes slideUp {
-        from { transform: translateY(30px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
-    }
+    @@keyframes modalIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 
-    .modal-top { padding: 30px; display: flex; justify-content: space-between; border-bottom: 1px solid #222; }
-    .modal-top h3 { margin: 0; color: var(--accent); }
-    .close-x { background: none; border: none; color: #444; font-size: 1.8rem; cursor: pointer; }
+    .modal-header { padding: 30px; border-bottom: 1px solid #222; display: flex; justify-content: space-between; align-items: center; }
+    .modal-header h3 { margin: 0; color: var(--gold); font-size: 1.5rem; }
+    .btn-close { background: none; border: none; color: #555; font-size: 2rem; cursor: pointer; }
 
-    .modal-main { padding: 30px; }
+    .modal-body { padding: 30px; }
 
-    .input-group { margin-bottom: 20px; }
-    .input-group label { display: block; color: #666; font-size: 0.8rem; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+    .elite-group { margin-bottom: 20px; }
+    .elite-group label { display: block; color: var(--text-dim); font-size: 0.75rem; font-weight: 800; text-transform: uppercase; margin-bottom: 8px; letter-spacing: 1px; }
     
-    .luxury-input {
-        width: 100%; background: #222; border: 1px solid #333;
-        padding: 14px 18px; border-radius: 12px; color: #fff;
-        transition: 0.3s;
+    .elite-input {
+        width: 100%; background: var(--bg-input); border: 1px solid #333;
+        padding: 14px 20px; border-radius: var(--radius); color: #fff;
+        font-size: 1rem; transition: var(--transition);
     }
-    .luxury-input:focus { border-color: var(--accent); outline: none; background: #282828; }
-
-    .save-btn {
-        background: var(--accent); color: #000; border: none;
-        padding: 14px 40px; border-radius: 12px; font-weight: 800; cursor: pointer;
-    }
+    .elite-input:focus { border-color: var(--gold); outline: none; box-shadow: 0 0 15px rgba(243, 156, 18, 0.1); }
     
-    .block-btn {
+    .elite-select { appearance: none; cursor: pointer; }
+
+    .btn-gold-submit {
+        width: 100%; background: var(--gold); border: none; padding: 16px;
+        border-radius: var(--radius); font-weight: 800; cursor: pointer; margin-top: 10px;
+    }
+
+    .modal-footer-btns { display: flex; justify-content: space-between; gap: 15px; margin-top: 25px; }
+    .btn-outline-danger {
         background: transparent; border: 1px solid #e74c3c; color: #e74c3c;
-        padding: 12px 25px; border-radius: 12px; font-weight: 600; cursor: pointer;
+        padding: 12px 25px; border-radius: var(--radius); font-weight: 700; cursor: pointer;
     }
 
-    .modal-actions-between { display: flex; justify-content: space-between; gap: 20px; margin-top: 30px; }
-    
-    .edit-profile-layout { display: flex; flex-direction: column; gap: 30px; }
-    .profile-preview { display: flex; align-items: center; gap: 20px; }
-    .avatar-large { width: 80px; height: 80px; background: var(--accent); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: #000; }
-    
-    .status-pill { padding: 6px 15px; border-radius: 50px; font-size: 0.75rem; font-weight: 700; }
-    .status-pill.ok { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
-    .status-pill.warn { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
+    .profile-header { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 30px; }
+    .avatar-big { width: 80px; height: 80px; background: var(--gold); color: #000; border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 2.5rem; font-weight: 900; }
+    .status-badge { padding: 6px 16px; border-radius: 50px; font-size: 0.8rem; font-weight: 700; }
+    .status-badge.ok { background: rgba(46, 204, 113, 0.1); color: #2ecc71; }
+    .status-badge.blocked { background: rgba(231, 76, 60, 0.1); color: #e74c3c; }
 
-    .luxury-spinner {
-        width: 40px; height: 40px; border: 3px solid rgba(243, 156, 18, 0.1);
-        border-top-color: var(--accent); border-radius: 50%;
-        animation: spin 1s linear infinite; margin: 0 auto 20px;
-    }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(255,255,255,0.05); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
     @@keyframes spin { to { transform: rotate(360deg); } }
 </style>
-
 @code {
     private List<UserDto>? users;
     private UserDto? selectedUser;
@@ -352,7 +298,7 @@
     {
         try
         {
-            // Имитация задержки для демонстрации спиннера
+           
             await Task.Delay(500); 
             users = await Http.GetFromJsonAsync<List<UserDto>>("admin/users");
         }

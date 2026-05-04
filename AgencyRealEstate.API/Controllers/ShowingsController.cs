@@ -11,7 +11,7 @@ namespace AgencyRealEstate.API.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize(Roles = "Administrator,Manager,Realtor,Client")]
+[Authorize]
 public class ShowingsController : ControllerBase
 {
     private readonly AppDbContext _context;
@@ -21,14 +21,18 @@ public class ShowingsController : ControllerBase
         _context = context;
     }
 
+    // Создание заявки на показ
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateShowingRequest request)
     {
-       
         int currentUserId = GetCurrentUserId();
+        string normalizedPhone = NormalizePhone(request.ClientPhone);
 
-       
-        var client = await _context.Clients.FirstOrDefaultAsync(c => c.Phone == request.ClientPhone);
+        var client = await _context.Clients
+            .FirstOrDefaultAsync(c =>
+                c.Phone != null &&
+                c.Phone.Replace(" ", "").Replace("-", "").Replace("(", "").Replace(")", "") == normalizedPhone);
+
         if (client == null)
         {
             client = new Client
@@ -40,26 +44,16 @@ public class ShowingsController : ControllerBase
             _context.Clients.Add(client);
             await _context.SaveChangesAsync();
         }
-
-      
-        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == currentUserId);
-        int realtorId;
-        if (employee != null)
-        {
-            realtorId = employee.EmployeeId;
-        }
         else
         {
-          
-            realtorId = await _context.Employees.MinAsync(e => e.EmployeeId);
+            if (!string.IsNullOrWhiteSpace(request.ClientName))
+                client.FullName = request.ClientName;
         }
 
-       
         var showing = new Showing
         {
             PropertyId = request.PropertyId,
             ClientId = client.ClientId,
-            RealtorId = realtorId,
             ShowingDateTime = request.Date.Add(request.Time ?? TimeSpan.Zero),
             Comments = request.Comments,
             CreatedByUserId = currentUserId
@@ -71,11 +65,159 @@ public class ShowingsController : ControllerBase
         return Ok(new { message = "Заявка создана", showingId = showing.ShowingId });
     }
 
+    // Список свободных показов (RealtorId == null)
+    [HttpGet("available")]
+    public async Task<IActionResult> GetAvailableShowings()
+    {
+        var showings = await _context.Showings
+            .Include(s => s.Property)
+            .Include(s => s.Client)
+            .Where(s => s.RealtorId == null)
+            .Select(s => new
+            {
+                s.ShowingId,
+                s.ShowingDateTime,
+                ClientName = s.Client.FullName,
+                ClientPhone = s.Client.Phone,
+                PropertyAddress = s.Property.Address,
+                PropertyTypeName = s.Property.PropertyType.Name,
+                s.Comments
+            })
+            .OrderBy(s => s.ShowingDateTime)
+            .ToListAsync();
+
+        return Ok(showings);
+    }
+
+    [HttpGet("my")]
+    [Authorize(Roles = "Client")]
+    public async Task<IActionResult> GetMyShowings()
+    {
+        int userId = GetCurrentUserId();
+
+        // Получаем ClientId текущего пользователя (берём первого, если их несколько)
+        var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
+        int? clientId = client?.ClientId;
+
+        var showings = await _context.Showings
+            .Include(s => s.Property)
+            .Include(s => s.Realtor)
+            .Include(s => s.ShowingResult)
+            .Where(s => s.CreatedByUserId == userId)
+            .Select(s => new
+            {
+                s.ShowingId,
+                s.ShowingDateTime,
+                PropertyAddress = s.Property.Address,
+                RealtorName = s.Realtor != null ? s.Realtor.FullName : "Не назначен",
+                ResultName = s.ShowingResult != null ? s.ShowingResult.ResultName : null,
+                s.Comments,
+                // Кнопка активна, если показ завершён/заинтересован и ещё нет активной сделки
+                CanDeal = s.ShowingResult != null &&
+                    (s.ShowingResult.ResultName == "Completed" || s.ShowingResult.ResultName == "Interested") &&
+                    (clientId == null || !_context.Deals.Any(d =>
+                        d.PropertyId == s.PropertyId &&
+                        d.BuyerId == clientId &&       // сделка этого же клиента
+                        d.DealStatusId != 3))          // не отменённая
+            })
+            .OrderByDescending(s => s.ShowingDateTime)
+            .ToListAsync();
+
+        return Ok(showings);
+    }
+
+    // Показы, назначенные текущему риелтору
+    [HttpGet("assigned")]
+    [Authorize(Roles = "Administrator,Manager,Realtor")]
+    public async Task<IActionResult> GetAssignedShowings()
+    {
+        int userId = GetCurrentUserId();
+        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == userId);
+        if (employee == null) return BadRequest("Сотрудник не найден");
+
+        var showings = await _context.Showings
+            .Include(s => s.Property).ThenInclude(p => p.PropertyType)
+            .Include(s => s.Client)
+            .Where(s => s.RealtorId == employee.EmployeeId && s.ShowingResultId == null)
+            .Select(s => new
+            {
+                s.ShowingId,
+                s.ShowingDateTime,
+                PropertyAddress = s.Property.Address,
+                PropertyTypeName = s.Property.PropertyType.Name,
+                ClientName = s.Client.FullName,
+                ClientPhone = s.Client.Phone,
+                ClientEmail = s.Client.Email,               
+                ClientPassport = s.Client.PassportData,     
+                s.Comments,
+                SelectedResultId = s.ShowingResultId   
+            })
+            .OrderByDescending(s => s.ShowingDateTime)
+            .ToListAsync();
+
+        return Ok(showings);
+    }
+
+    // Взять показ в работу (риелтор)
+    [HttpPut("{id}/accept")]
+    public async Task<IActionResult> AcceptShowing(int id)
+    {
+        var showing = await _context.Showings.FindAsync(id);
+        if (showing == null) return NotFound("Показ не найден");
+        if (showing.RealtorId != null) return BadRequest("Показ уже занят другим риелтором");
+
+        int userId = GetCurrentUserId();
+        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == userId);
+        if (employee == null) return BadRequest("Ваш профиль сотрудника не найден");
+
+        showing.RealtorId = employee.EmployeeId;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Показ взят в работу", showingId = id });
+    }
+
+    // Обновить результат показа
+    [HttpPut("{id}/result")]
+    [Authorize(Roles = "Administrator,Manager,Realtor")]
+    public async Task<IActionResult> UpdateShowingResult(int id, [FromBody] UpdateShowingResultRequest request)
+    {
+        var showing = await _context.Showings.FindAsync(id);
+        if (showing == null) return NotFound("Показ не найден");
+
+        int userId = GetCurrentUserId();
+        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == userId);
+        if (employee == null || showing.RealtorId != employee.EmployeeId)
+            return Forbid("Вы не можете менять этот показ");
+
+        showing.ShowingResultId = request.ResultId;
+        if (!string.IsNullOrWhiteSpace(request.Comments))
+            showing.Comments = request.Comments;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Результат обновлён" });
+    }
+
+    // Вспомогательные методы
+    private static string NormalizePhone(string? phone)
+    {
+        if (string.IsNullOrWhiteSpace(phone)) return "";
+        var digits = new string(phone.Where(char.IsDigit).ToArray());
+        if (digits.Length > 0 && digits[0] == '8')
+            digits = "7" + digits.Substring(1);
+        return digits;
+    }
+
     private int GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (userIdClaim == null)
-            throw new UnauthorizedAccessException("Пользователь не найден в токене");
+        if (userIdClaim == null) throw new UnauthorizedAccessException();
         return int.Parse(userIdClaim);
     }
+}
+
+public class UpdateShowingResultRequest
+{
+    public byte ResultId { get; set; }
+    public string? Comments { get; set; }
 }

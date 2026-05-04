@@ -1,6 +1,57 @@
-﻿<h3>Reports</h3>
+﻿@page "/reports"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrator,Manager")]
-<MudText Typo="Typo.h4">Страница в разработке</MudText>
-@code {
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject IJSRuntime JS
 
+<div class="page-wrapper" style="background: #121212; min-height: 100vh; padding: 120px 40px;">
+    <div class="container" style="max-width: 1200px; margin: 0 auto;">
+        <h2 style="color: #f39c12;">📊 Отчёты</h2>
+        @if (report == null)
+        {
+            <p>Загрузка...</p>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-md-6">
+                    <h4 style="color: #ccc;">По статусам</h4>
+                    <canvas id="statusChart" width="400" height="300"></canvas>
+                </div>
+                <div class="col-md-6">
+                    <h4 style="color: #ccc;">По типам</h4>
+                    <canvas id="typeChart" width="400" height="300"></canvas>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private ReportData? report;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            report = await Http.GetFromJsonAsync<ReportData>("reports");
+        }
+        catch
+        {
+            
+        }
+
+        if (report != null)
+        {
+           
+            await JS.InvokeVoidAsync("drawCharts", report.StatusCounts, report.TypeCounts);
+        }
+    }
+
+    public class ReportData
+    {
+        public Dictionary<string, int> StatusCounts { get; set; }
+        public Dictionary<string, int> TypeCounts { get; set; }
+    }
 }

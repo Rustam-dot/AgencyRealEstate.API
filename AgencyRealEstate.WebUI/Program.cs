@@ -7,19 +7,19 @@ using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- MudBlazor ---
+
 builder.Services.AddMudServices();
 
-// --- HTTP-контекст для чтения куки ---
+
 builder.Services.AddHttpContextAccessor();
 
-// --- Хранилище токена (простая кука) ---
+
 builder.Services.AddScoped<TokenStorage>();
 
-// --- Обработчик, добавляющий JWT в заголовки запросов ---
+
 builder.Services.AddScoped<AuthMessageHandler>();
 
-// --- Единый HttpClient с поддержкой аутентификации ---
+
 builder.Services.AddScoped(sp =>
 {
     var tokenStorage = sp.GetRequiredService<TokenStorage>();

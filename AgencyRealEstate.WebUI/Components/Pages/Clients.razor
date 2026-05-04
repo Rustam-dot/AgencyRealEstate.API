@@ -1,5 +1,247 @@
-﻿<h3>Clients</h3>
-@attribute [Authorize(Roles = "Realtor")]
-@code {
+﻿@page "/clients"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator,Manager,Realtor")]
+@using System.Net.Http.Json
+@inject HttpClient Http
 
+<div class="elite-clients-layout">
+    <div class="ambient-glow"></div>
+
+    <div class="page-wrapper">
+        <header class="page-header">
+            <div class="header-text">
+                <h2 class="elite-title">База клиентов<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">Активные зарегистрированные клиенты Elite Estates</p>
+            </div>
+            <div class="stats-badge">
+                <i class="fas fa-users"></i>
+                <span>@(clients?.Count ?? 0) записей</span>
+            </div>
+        </header>
+
+        @if (clients != null && clients.Any())
+        {
+            <div class="search-bar fade-in">
+                <i class="fas fa-search"></i>
+                <input type="text" @bind="searchText" @bind:event="oninput" placeholder="Поиск по имени, телефону или email..." />
+            </div>
+        }
+
+        @if (clients == null)
+        {
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <p>Подключение к зашифрованной базе...</p>
+            </div>
+        }
+        else if (!clients.Any())
+        {
+            <div class="empty-state fade-in">
+                <div class="empty-icon-box">
+                    <i class="fas fa-user-friends"></i>
+                </div>
+                <h3>База данных пуста</h3>
+                <p>Как только пользователи пройдут регистрацию, их профили отобразятся здесь.</p>
+            </div>
+        }
+        else if (!FilteredClients.Any())
+        {
+            <div class="empty-state fade-in">
+                <div class="empty-icon-box" style="color: #444;">
+                    <i class="fas fa-search-minus"></i>
+                </div>
+                <h3>Совпадений не найдено</h3>
+                <p>По вашему запросу «@searchText» нет результатов. Попробуйте изменить параметры поиска.</p>
+            </div>
+        }
+        else
+        {
+            <div class="clients-grid">
+                @foreach (var client in FilteredClients)
+                {
+                    <div class="client-card fade-in">
+                        <div class="card-body">
+                            <div class="avatar-placeholder">
+                                @GetInitial(client)
+                            </div>
+                            <div class="client-info">
+                                <h4>@(string.IsNullOrWhiteSpace(client.FullName) ? "Без имени" : client.FullName)</h4>
+                                <p>@client.Email</p>
+                                <div class="meta-row">
+                                    <span><i class="fas fa-phone-alt"></i> @(string.IsNullOrWhiteSpace(client.Phone) ? "Не указан" : client.Phone)</span>
+                                </div>
+                                <div class="meta-row" style="margin-top: 5px;">
+                                    <span><i class="fas fa-calendar-alt"></i> Зарегистрирован: @client.CreatedAt.ToString("dd.MM.yyyy")</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-footer">
+                            <span class="client-id">ID: #@client.UserId</span>
+                            <span class="status @(client.IsActive ? "active" : "inactive")">
+                                <span class="dot"></span> @(client.IsActive ? "Активен" : "Заблокирован")
+                            </span>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --bg-dark: #0a0a0a;
+        --card-bg: #141414;
+        --border-glass: rgba(255, 255, 255, 0.08);
+    }
+
+    .elite-clients-layout {
+        background: var(--bg-dark); min-height: 100vh; color: #fff;
+        padding: 120px 40px 60px; position: relative; overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ambient-glow {
+        position: fixed; top: 10%; right: -10%; width: 50%; height: 50%;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.04) 0%, transparent 60%);
+        pointer-events: none; z-index: 1;
+    }
+
+    .page-wrapper { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 30px; }
+    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: #666; margin-top: 8px; font-size: 1.1rem; }
+
+    .stats-badge {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass);
+        padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 12px;
+        color: var(--gold); font-weight: 700;
+    }
+
+    /* SEARCH BAR */
+    .search-bar {
+        position: relative; margin-bottom: 40px; max-width: 600px;
+    }
+    .search-bar i {
+        position: absolute; left: 20px; top: 50%; transform: translateY(-50%);
+        color: #666; font-size: 1.2rem; pointer-events: none; transition: 0.3s;
+    }
+    .search-bar input {
+        width: 100%; background: #1a1a1a; border: 1px solid var(--border-glass);
+        color: #fff; padding: 18px 20px 18px 55px; border-radius: 16px;
+        font-size: 1rem; outline: none; transition: 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .search-bar input:focus { border-color: var(--gold); background: #1e1e1e; }
+    .search-bar input:focus + i { color: var(--gold); }
+
+    /* GRID & CARDS */
+    .clients-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 20px; }
+
+    .client-card {
+        background: var(--card-bg); border-radius: 20px; border: 1px solid var(--border-glass);
+        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); overflow: hidden;
+        display: flex; flex-direction: column;
+    }
+    .client-card:hover { border-color: rgba(243, 156, 18, 0.3); transform: translateY(-5px); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
+
+    .card-body { padding: 30px; display: flex; gap: 20px; align-items: center; flex: 1; }
+
+    .avatar-placeholder {
+        width: 65px; height: 65px; background: rgba(243, 156, 18, 0.1); border-radius: 50%;
+        display: flex; align-items: center; justify-content: center; font-size: 1.8rem;
+        font-weight: 800; color: var(--gold); border: 1px solid rgba(243, 156, 18, 0.2);
+        flex-shrink: 0;
+    }
+
+    .client-info h4 { margin: 0 0 5px 0; font-size: 1.25rem; font-weight: 700; color: #fff; }
+    .client-info p { margin: 0 0 15px 0; color: #777; font-size: 0.95rem; }
+
+    .meta-row { display: flex; gap: 15px; color: #999; font-size: 0.85rem; align-items: center; }
+    .meta-row i { color: #555; width: 14px; text-align: center; }
+
+    .card-footer {
+        background: rgba(255,255,255,0.02); padding: 15px 30px;
+        display: flex; justify-content: space-between; align-items: center; font-size: 0.85rem;
+        border-top: 1px solid var(--border-glass);
+    }
+    .client-id { color: #666; font-family: monospace; font-weight: 600; letter-spacing: 1px; }
+    
+    .status { font-weight: 700; display: flex; align-items: center; gap: 6px; text-transform: uppercase; font-size: 0.75rem; letter-spacing: 0.5px; }
+    .status .dot { width: 6px; height: 6px; border-radius: 50%; }
+    .status.active { color: #2ecc71; }
+    .status.active .dot { background: #2ecc71; box-shadow: 0 0 8px #2ecc71; }
+    .status.inactive { color: #e74c3c; }
+    .status.inactive .dot { background: #e74c3c; box-shadow: 0 0 8px #e74c3c; }
+
+    /* LOADER & EMPTY */
+    .luxe-loader { text-align: center; padding: 100px 0; color: #444; }
+    .spinner { width: 40px; height: 40px; border: 3px solid rgba(243, 156, 18, 0.1); border-top-color: var(--gold); border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 20px; }
+
+    .empty-state { text-align: center; padding: 100px 20px; background: rgba(255,255,255,0.01); border-radius: 30px; border: 1px dashed #222; }
+    .empty-icon-box { font-size: 3.5rem; color: #222; margin-bottom: 20px; }
+    .empty-state h3 { font-size: 1.6rem; font-weight: 700; margin-bottom: 10px; color: #fff; }
+    .empty-state p { color: #666; max-width: 400px; margin: 0 auto; }
+
+    /* ANIMATIONS */
+    .fade-in { animation: fadeIn 0.5s ease-out forwards; }
+    @@keyframes fadeIn { from { opacity: 0; transform: translateY(15px); } to { opacity: 1; transform: translateY(0); } }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+
+    @@media (max-width: 768px) {
+        .page-header { flex-direction: column; align-items: flex-start; gap: 20px; }
+    }
+</style>
+
+@code {
+    private List<ClientDto>? clients;
+    private string searchText = "";
+
+    // Фильтрация клиентов на лету
+    private IEnumerable<ClientDto> FilteredClients =>
+        string.IsNullOrWhiteSpace(searchText)
+            ? clients ?? new List<ClientDto>()
+            : (clients ?? new List<ClientDto>()).Where(c => 
+                (c.FullName != null && c.FullName.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                (c.Phone != null && c.Phone.Contains(searchText, StringComparison.OrdinalIgnoreCase)) ||
+                (c.Email != null && c.Email.Contains(searchText, StringComparison.OrdinalIgnoreCase)));
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            await Task.Delay(400); // Эффект плавной загрузки
+            clients = await Http.GetFromJsonAsync<List<ClientDto>>("clients");
+        }
+        catch
+        {
+            clients = new();
+        }
+    }
+
+    // Безопасное получение первой буквы для аватара
+    private string GetInitial(ClientDto client)
+    {
+        if (!string.IsNullOrWhiteSpace(client.FullName))
+            return client.FullName.Substring(0, 1).ToUpper();
+        
+        if (!string.IsNullOrWhiteSpace(client.Login))
+            return client.Login.Substring(0, 1).ToUpper();
+            
+        return "U";
+    }
+
+    public class ClientDto
+    {
+        public int UserId { get; set; }
+        public string Login { get; set; } = "";
+        public string Email { get; set; } = "";
+        public bool IsActive { get; set; }
+        public string FullName { get; set; } = "";
+        public string Phone { get; set; } = "";
+        public DateTime CreatedAt { get; set; }
+    }
 }

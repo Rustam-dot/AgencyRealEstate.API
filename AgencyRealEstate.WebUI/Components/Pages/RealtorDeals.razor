@@ -1,0 +1,336 @@
+﻿@page "/realtor-deals"
+@rendermode InteractiveServer
+@attribute [Authorize(Roles = "Administrator,Manager,Realtor")]
+@using System.Net.Http.Json
+@inject HttpClient Http
+
+<div class="elite-realtor-deals">
+    <div class="ambient-glow"></div>
+
+    <div class="page-wrapper">
+        <header class="page-header">
+            <div class="header-text">
+                <h2 class="elite-title">Портфель сделок<span class="gold-dot">.</span></h2>
+                <p class="elite-subtitle">Управление активными и завершенными операциями по недвижимости</p>
+            </div>
+            <div class="stats-badge">
+                <i class="fas fa-hand-holding-usd"></i>
+                <span>@(deals?.Count ?? 0) записей</span>
+            </div>
+        </header>
+
+        @if (deals == null)
+        {
+            <div class="luxe-loader">
+                <div class="spinner"></div>
+                <p>Синхронизация реестра...</p>
+            </div>
+        }
+        else
+        {
+            <div class="deals-grid">
+                @foreach (var deal in deals)
+                {
+                    <div class="deal-card luxe-card">
+                        <div class="card-glow"></div>
+                        <div class="card-inner">
+                            @* Инфо о сделке *@
+                            <div class="deal-main-info">
+                                <div class="status-row">
+                                    <span class="status-tag @deal.StatusName.ToLower()">
+                                        <i class="fas @GetStatusIcon(deal.StatusName)"></i>
+                                        @(deal.StatusName == "InProgress" ? "В процессе" : deal.StatusName == "Completed" ? "Завершена" : "Отменена")
+                                    </span>
+                                    <span class="date-label">@deal.DealDate.ToString("dd.MM.yyyy")</span>
+                                </div>
+                                
+                                <h3 class="property-addr">@deal.PropertyAddress</h3>
+                                
+                                <div class="client-meta">
+                                    <div class="meta-item">
+                                        <i class="fas fa-user-tag"></i>
+                                        <span>@deal.BuyerName</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-file-contract"></i>
+                                        <span>@deal.DealTypeName</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            @* Сумма и Действия *@
+                            <div class="deal-finance-actions">
+                                <div class="amount-display">
+                                    <label>Сумма сделки</label>
+                                    <div class="value">@(deal.Amount?.ToString("N0") ?? "—") <span class="currency">₽</span></div>
+                                </div>
+
+                                <div class="action-buttons">
+                                    @if (deal.CanComplete)
+                                    {
+                                        <button class="btn-action edit" @onclick="() => OpenEditModal(deal)" title="Редактировать">
+                                            <i class="fas fa-pen"></i>
+                                        </button>
+                                        <button class="btn-action complete" @onclick="() => CompleteDeal(deal.DealId)" title="Завершить">
+                                            <i class="fas fa-check"></i>
+                                        </button>
+                                        <button class="btn-action reject" @onclick="() => RejectDeal(deal.DealId)" title="Отклонить">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@* Премиальное модальное окно *@
+@if (editDeal != null)
+{
+    <div class="luxe-modal-overlay" @onclick="CloseEditModal">
+        <div class="luxe-modal-card" @onclick:stopPropagation="true">
+            <div class="modal-header">
+                <h3>Правка сделки <span class="id-text">#@editDeal.DealId</span></h3>
+                <button class="close-btn" @onclick="CloseEditModal">&times;</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Категория сделки</label>
+                    <div class="select-wrapper">
+                        <select @bind="editModel.DealTypeId">
+                            <option value="1">Покупка</option>
+                            <option value="2">Аренда</option>
+                        </select>
+                        <i class="fas fa-chevron-down"></i>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Уточненная сумма (₽)</label>
+                    <div class="input-wrapper">
+                        <InputNumber @bind-Value="editModel.Amount" placeholder="0.00" />
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button class="btn-modal-cancel" @onclick="CloseEditModal">Отмена</button>
+                <button class="btn-modal-save" @onclick="SaveEdit">Сохранить изменения</button>
+            </div>
+        </div>
+    </div>
+}
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --bg-dark: #0a0a0a;
+        --bg-card: #141414;
+        --border-glass: rgba(255, 255, 255, 0.08);
+        --success: #2ecc71;
+        --danger: #e74c3c;
+    }
+
+    .elite-realtor-deals {
+        background: var(--bg-dark); min-height: 100vh; color: #fff;
+        padding: 120px 40px 60px; position: relative; overflow: hidden;
+    }
+
+    .ambient-glow {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: radial-gradient(circle at 90% 10%, rgba(243, 156, 18, 0.05) 0%, transparent 50%);
+        pointer-events: none;
+    }
+
+    .page-wrapper { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
+
+    /* HEADER */
+    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
+    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
+    .gold-dot { color: var(--gold); }
+    .elite-subtitle { color: #666; margin-top: 8px; }
+
+    .stats-badge {
+        background: rgba(255,255,255,0.03); border: 1px solid var(--border-glass);
+        padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 12px;
+        color: var(--gold); font-weight: 700;
+    }
+
+    /* CARDS */
+    .deals-grid { display: grid; gap: 20px; }
+
+    .luxe-card {
+        background: var(--bg-card); border-radius: 24px; border: 1px solid var(--border-glass);
+        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); position: relative; overflow: hidden;
+    }
+    .luxe-card:hover { transform: translateY(-5px); border-color: rgba(243, 156, 18, 0.3); }
+
+    .card-inner { display: flex; padding: 30px; gap: 40px; align-items: center; justify-content: space-between; }
+
+    .deal-main-info { flex: 1; }
+    .status-row { display: flex; align-items: center; gap: 20px; margin-bottom: 15px; }
+    
+    .status-tag { 
+        font-size: 0.7rem; font-weight: 900; text-transform: uppercase; letter-spacing: 1px;
+        padding: 6px 12px; border-radius: 6px; display: flex; align-items: center; gap: 6px;
+    }
+    .status-tag.inprogress { background: rgba(243, 156, 18, 0.1); color: var(--gold); }
+    .status-tag.completed { background: rgba(46, 204, 113, 0.1); color: var(--success); }
+    .status-tag.cancelled { background: rgba(231, 76, 60, 0.1); color: var(--danger); }
+
+    .date-label { color: #444; font-size: 0.85rem; font-weight: 700; }
+
+    .property-addr { font-size: 1.6rem; font-weight: 700; margin: 0 0 15px 0; color: #fff; }
+
+    .client-meta { display: flex; gap: 25px; }
+    .meta-item { display: flex; align-items: center; gap: 10px; color: #888; font-size: 0.95rem; }
+    .meta-item i { color: #333; }
+
+    /* FINANCE & ACTIONS */
+    .deal-finance-actions { text-align: right; display: flex; flex-direction: column; gap: 20px; min-width: 250px; }
+    .amount-display label { display: block; font-size: 0.75rem; color: #555; text-transform: uppercase; font-weight: 800; margin-bottom: 5px; }
+    .amount-display .value { font-size: 1.8rem; font-weight: 900; color: var(--gold); }
+    .amount-display .currency { font-size: 1.2rem; opacity: 0.5; }
+
+    .action-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+    
+    .btn-action {
+        width: 45px; height: 45px; border-radius: 14px; border: 1px solid rgba(255,255,255,0.05);
+        display: flex; align-items: center; justify-content: center; cursor: pointer; transition: 0.3s;
+        background: rgba(255,255,255,0.02); color: #fff;
+    }
+    .btn-action.edit:hover { background: #3498db; color: #fff; border-color: #3498db; }
+    .btn-action.complete:hover { background: var(--success); color: #000; border-color: var(--success); }
+    .btn-action.reject:hover { background: var(--danger); color: #fff; border-color: var(--danger); }
+
+    /* MODAL */
+    .luxe-modal-overlay {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.85); backdrop-filter: blur(10px);
+        display: flex; align-items: center; justify-content: center; z-index: 1000;
+    }
+    .luxe-modal-card {
+        background: #1a1a1a; width: 100%; max-width: 450px; border-radius: 30px;
+        border: 1px solid var(--border-glass); padding: 40px; box-shadow: 0 30px 60px rgba(0,0,0,0.5);
+    }
+    .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .id-text { color: var(--gold); opacity: 0.5; margin-left: 10px; }
+    .close-btn { background: none; border: none; color: #555; font-size: 2rem; cursor: pointer; }
+
+    .form-group { margin-bottom: 25px; }
+    .form-group label { display: block; color: #666; font-weight: 700; margin-bottom: 10px; font-size: 0.85rem; }
+    
+    .select-wrapper, .input-wrapper { position: relative; }
+    .select-wrapper select, .input-wrapper input {
+        width: 100%; background: #222; border: 1px solid #333; color: #fff;
+        padding: 15px; border-radius: 14px; outline: none; font-size: 1rem;
+    }
+    .select-wrapper i { position: absolute; right: 15px; top: 50%; transform: translateY(-50%); color: var(--gold); pointer-events: none; }
+
+    .modal-footer { display: flex; gap: 15px; margin-top: 40px; }
+    .btn-modal-cancel { flex: 1; background: none; border: 1px solid #333; color: #777; padding: 15px; border-radius: 14px; font-weight: 700; cursor: pointer; }
+    .btn-modal-save { flex: 2; background: var(--gold); color: #000; border: none; padding: 15px; border-radius: 14px; font-weight: 800; cursor: pointer; }
+
+    @@media (max-width: 850px) {
+        .card-inner { flex-direction: column; text-align: center; gap: 30px; }
+        .deal-finance-actions { text-align: center; width: 100%; }
+        .action-buttons { justify-content: center; }
+        .status-row { justify-content: center; }
+        .client-meta { justify-content: center; }
+    }
+</style>
+
+@code {
+    private List<DealDto>? deals;
+    private DealDto? editDeal;
+    private UpdateDealRequest editModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadDeals();
+    }
+
+    private async Task LoadDeals()
+    {
+        try
+        {
+            await Task.Delay(400); // Плавность
+            deals = await Http.GetFromJsonAsync<List<DealDto>>("deals/assigned");
+        }
+        catch { deals = new(); }
+    }
+
+    private string GetStatusIcon(string status) => status switch
+    {
+        "Completed" => "fa-check-circle",
+        "Cancelled" => "fa-times-circle",
+        _ => "fa-sync-alt"
+    };
+
+    private void OpenEditModal(DealDto deal)
+    {
+        editDeal = deal;
+        editModel = new UpdateDealRequest { Amount = deal.Amount, DealTypeId = deal.DealTypeId };
+    }
+
+    private void CloseEditModal() => editDeal = null;
+
+    private async Task SaveEdit()
+    {
+        if (editDeal == null) return;
+        try
+        {
+            var response = await Http.PutAsJsonAsync($"deals/{editDeal.DealId}", editModel);
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadDeals();
+                CloseEditModal();
+            }
+        }
+        catch { }
+    }
+
+    private async Task CompleteDeal(int id)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"deals/{id}/complete", null);
+            if (response.IsSuccessStatusCode) await LoadDeals();
+        }
+        catch { }
+    }
+
+    private async Task RejectDeal(int id)
+    {
+        try
+        {
+            var response = await Http.PutAsync($"deals/{id}/reject", null);
+            if (response.IsSuccessStatusCode) await LoadDeals();
+        }
+        catch { }
+    }
+
+    public class DealDto
+    {
+        public int DealId { get; set; }
+        public DateTime DealDate { get; set; }
+        public decimal? Amount { get; set; }
+        public string PropertyAddress { get; set; } = "";
+        public string BuyerName { get; set; } = "";
+        public string StatusName { get; set; } = "";
+        public string DealTypeName { get; set; } = "";
+        public bool CanComplete { get; set; }
+        public int DealTypeId { get; set; }
+    }
+
+    public class UpdateDealRequest
+    {
+        public int? DealTypeId { get; set; }
+        public decimal? Amount { get; set; }
+    }
+}
