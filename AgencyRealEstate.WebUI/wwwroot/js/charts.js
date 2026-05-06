@@ -1,107 +1,104 @@
-﻿window.drawCharts = (statusData, typeData) => {
-    // Удаляем старые канвасы, если они существуют (на случай повторного вызова)
-    const statusCanvas = document.getElementById('statusChart');
-    const typeCanvas = document.getElementById('typeChart');
+﻿
+window.setupDoubleCharts = (labels, revenueData, transactionData) => {
+    console.log('setupDoubleCharts вызвана');
+    Chart.defaults.color = '#aaaaaa';
+    Chart.defaults.borderColor = 'rgba(255, 255, 255, 0.08)';
 
-    if (!statusCanvas || !typeCanvas) return;
+    if (window._revenueChart instanceof Chart) window._revenueChart.destroy();
+    if (window._transactionsChart instanceof Chart) window._transactionsChart.destroy();
 
-    // Уничтожаем существующие графики, чтобы избежать наложения
-    if (statusCanvas._chart) statusCanvas._chart.destroy();
-    if (typeCanvas._chart) typeCanvas._chart.destroy();
-
-    // График по статусам
-    const statusCtx = statusCanvas.getContext('2d');
-    statusCanvas._chart = new Chart(statusCtx, {
-        type: 'doughnut',
-        data: {
-            labels: Object.keys(statusData),
-            datasets: [{
-                data: Object.values(statusData),
-                backgroundColor: [
-                    '#2ecc71', // Available – зеленый
-                    '#f39c12', // Reserved – золотой
-                    '#e74c3c', // Sold – красный
-                    '#3498db', // Rented – синий
-                    '#95a5a6'  // Inactive – серый
-                ],
-                borderColor: '#121212',
-                borderWidth: 3,
-                hoverBorderColor: '#f39c12'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#ccc',
-                        padding: 20,
-                        font: {
-                            family: 'Inter',
-                            size: 12
+    const revenueCanvas = document.getElementById('revenueChart');
+    if (revenueCanvas) {
+        window._revenueChart = new Chart(revenueCanvas, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Выручка (₽)',
+                    data: revenueData,
+                    borderColor: '#f39c12',
+                    backgroundColor: 'rgba(243, 156, 18, 0.1)',
+                    fill: true,
+                    tension: 0.4,
+                    borderWidth: 3,
+                    pointBackgroundColor: '#fff',
+                    pointBorderColor: '#f39c12',
+                    pointRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false,
+                        backgroundColor: '#1a1a1a',
+                        titleColor: '#fff',
+                        bodyColor: '#f39c12',
+                        borderColor: 'rgba(255,255,255,0.1)',
+                        borderWidth: 1,
+                        padding: 15,
+                        displayColors: false,
+                        callbacks: {
+                            label: function (context) {
+                                let label = context.dataset.label || '';
+                                if (label) label += ': ';
+                                if (context.parsed.y !== null) {
+                                    label += new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(context.parsed.y);
+                                }
+                                return label;
+                            }
                         }
                     }
                 },
-                title: {
-                    display: true,
-                    text: 'Распределение объектов по статусам',
-                    color: '#f39c12',
-                    font: {
-                        family: 'Inter',
-                        size: 16,
-                        weight: 'bold'
-                    }
-                }
-            }
-        }
-    });
-
-    // График по типам
-    const typeCtx = typeCanvas.getContext('2d');
-    typeCanvas._chart = new Chart(typeCtx, {
-        type: 'pie',
-        data: {
-            labels: Object.keys(typeData),
-            datasets: [{
-                data: Object.values(typeData),
-                backgroundColor: [
-                    '#9b59b6', // Квартира
-                    '#1abc9c', // Дом
-                    '#e67e22', // Таунхаус
-                    '#34495e', // Коммерческая
-                    '#e74c3c'  // Участок
-                ],
-                borderColor: '#121212',
-                borderWidth: 3,
-                hoverBorderColor: '#f39c12'
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        color: '#ccc',
-                        padding: 20,
-                        font: {
-                            family: 'Inter',
-                            size: 12
+                scales: {
+                    x: { grid: { display: false } },
+                    y: {
+                        ticks: {
+                            callback: function (value) {
+                                return new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(value);
+                            }
                         }
                     }
-                },
-                title: {
-                    display: true,
-                    text: 'Распределение по типам недвижимости',
-                    color: '#f39c12',
-                    font: {
-                        family: 'Inter',
-                        size: 16,
-                        weight: 'bold'
-                    }
                 }
             }
-        }
-    });
+        });
+    }
+
+    const transactionsCanvas = document.getElementById('transactionsChart');
+    if (transactionsCanvas) {
+        window._transactionsChart = new Chart(transactionsCanvas, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Сделок',
+                    data: transactionData,
+                    backgroundColor: 'rgba(52, 152, 219, 0.2)',
+                    borderColor: '#3498db',
+                    borderWidth: 2,
+                    borderRadius: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        backgroundColor: '#1a1a1a',
+                        titleColor: '#fff',
+                        bodyColor: '#3498db',
+                        padding: 15,
+                    }
+                },
+                scales: {
+                    x: { grid: { display: false } },
+                    y: { grid: { display: true }, ticks: { stepSize: 1 } }
+                }
+            }
+        });
+    }
 };

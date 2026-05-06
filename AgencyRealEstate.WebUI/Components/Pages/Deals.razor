@@ -1,5 +1,659 @@
-﻿<h3>Deals</h3>
+﻿@page "/add-property"
+@rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrator,Manager,Realtor")]
-@code {
+@using System.Net.Http.Json
+@inject HttpClient Http
+@inject TokenStorage TokenStorage
 
+<div class="elite-dashboard-layout">
+    <div class="ambient-glow"></div>
+
+    <div class="dashboard-container fade-in">
+        
+        <!-- ЛЕВАЯ КОЛОНКА: ФОРМА -->
+        <section class="form-side">
+            <header class="header-premium">
+                <h1>Новый объект<span class="gold-dot">.</span></h1>
+                <p>Создание премиальной карточки недвижимости в каталоге</p>
+            </header>
+
+            <div class="form-glass-card">
+                <EditForm Model="model" OnValidSubmit="SubmitProperty">
+                    <DataAnnotationsValidator />
+
+                    <div class="row g-4">
+                        <div class="col-12">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-map-marker-alt"></i> Адрес объекта</label>
+                                <InputText @bind-Value="model.Address" class="luxury-input" placeholder="г. Москва, ул. Арбат, д. 1" />
+                                <ValidationMessage For="@(() => model.Address)" class="val-msg" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-building"></i> Тип недвижимости</label>
+                                <select @bind="model.PropertyTypeId" class="luxury-input luxe-select">
+                                    <option value="0">-- Выберите --</option>
+                                    <option value="17">Квартира</option>
+                                    <option value="18">Вилла / Дом</option>
+                                    <option value="19">Таунхаус</option>
+                                    <option value="20">Коммерция</option>
+                                    <option value="21">Участок</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-tag"></i> Цена, ₽</label>
+                                <InputNumber @bind-Value="model.Price" class="luxury-input price-input" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-ruler-combined"></i> Общая площадь, м²</label>
+                                <InputNumber @bind-Value="model.TotalArea" class="luxury-input" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-couch"></i> Жилая площадь, м²</label>
+                                <InputNumber @bind-Value="model.LivingArea" class="luxury-input" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-door-open"></i> Комнат</label>
+                                <InputNumber @bind-Value="model.Rooms" class="luxury-input" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-layer-group"></i> Этаж</label>
+                                <div class="d-flex gap-2">
+                                    <InputNumber @bind-Value="model.Floor" class="luxury-input" placeholder="Этаж" />
+                                    <InputNumber @bind-Value="model.TotalFloors" class="luxury-input" placeholder="Всего" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-cubes"></i> Материал стен</label>
+                                <select @bind="model.WallMaterialId" class="luxury-input luxe-select">
+                                    <option value="">-- Не выбрано --</option>
+                                    <option value="20">Кирпич</option>
+                                    <option value="21">Панель</option>
+                                    <option value="22">Монолит</option>
+                                    <option value="23">Брус</option>
+                                    <option value="24">Газобетон</option>
+                                    <option value="25">Кирпично-монолитный</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="input-premium-group">
+                                <label><i class="fas fa-align-left"></i> Описание объекта</label>
+                                <InputTextArea @bind-Value="model.Description" class="luxury-input" rows="4" placeholder="Опишите преимущества объекта..." />
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (createdPropertyId == null)
+                    {
+                        <button type="submit" class="btn-premium-solid mt-5 w-100" disabled="@isProcessing">
+                            @if (isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <span>СОЗДАТЬ ОБЪЕКТ</span>
+                        </button>
+                    }
+                </EditForm>
+
+                @if (createdPropertyId != null)
+                {
+                    <div class="upload-section mt-5 fade-in">
+                        <div class="alert-success mb-4">
+                            <i class="fas fa-check-circle"></i> Объект #@createdPropertyId успешно создан. Загрузите фото.
+                        </div>
+
+                        <div class="upload-glass-box">
+                            <label class="upload-trigger">
+                                <i class="fas fa-cloud-upload-alt fa-3x" style="color: var(--gold)"></i>
+                                <span class="main-text">Выберите фотографии</span>
+                                <span class="sub-text">До 10 изображений, формат JPG/PNG/WEBP</span>
+                                <InputFile OnChange="OnFilesSelected" multiple accept="image/*" class="hidden-input" />
+                            </label>
+
+                            @if (filePreviews.Count > 0)
+                            {
+                                <div class="file-previews-grid mt-4">
+                                    @foreach (var img in filePreviews)
+                                    {
+                                        <div class="file-thumb">
+                                            <img src="@img.Url" alt="preview" />
+                                        </div>
+                                    }
+                                </div>
+                            }
+                        </div>
+
+                        <button class="btn-premium-solid mt-4 w-100" @onclick="UploadPhotos" disabled="@(!originalFiles.Any() || isProcessing)">
+                            @if (isProcessing) { <span class="spinner-border spinner-border-sm me-2"></span> }
+                            <span>ЗАГРУЗИТЬ ФОТО И ОПУБЛИКОВАТЬ</span>
+                        </button>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(statusMessage))
+                {
+                    <div class="@(statusMessage.Contains("Ошибка") || statusMessage.Contains("ошибка") ? "alert-error" : "alert-success") mt-4">
+                        <i class="fas @(statusMessage.Contains("Ошибка") || statusMessage.Contains("ошибка") ? "fa-exclamation-circle" : "fa-info-circle")"></i>
+                        @statusMessage
+                    </div>
+                }
+            </div>
+        </section>
+
+        <!-- ПРАВАЯ КОЛОНКА: ПРЕДПРОСМОТР -->
+        <section class="preview-side">
+            <div class="sticky-preview">
+                <h3 class="preview-title">Живой предпросмотр</h3>
+
+                <div class="property-preview-card-luxe">
+                    <div class="card-image-wrapper">
+                        @if (filePreviews.Count > 0)
+                        {
+                            <img src="@filePreviews.First().Url" class="main-card-img" alt="preview" />
+                            <div class="photo-count"><i class="fas fa-camera me-1"></i> @filePreviews.Count</div>
+                        }
+                        else
+                        {
+                            <div class="image-placeholder">
+                                <i class="fas fa-image fa-4x"></i>
+                                <span>Ожидание фото...</span>
+                            </div>
+                        }
+                        <div class="card-status-badge">Elite Collection</div>
+                    </div>
+
+                    <div class="card-details-luxe">
+                        <div class="type-price-row">
+                            <span class="prop-type">@GetPropertyTypeName(model.PropertyTypeId)</span>
+                            <span class="prop-price">@(model.Price > 0 ? $"{model.Price:N0} ₽" : "Цена не указана")</span>
+                        </div>
+
+                        <h4 class="prop-address">@(string.IsNullOrWhiteSpace(model.Address) ? "Укажите адрес..." : model.Address)</h4>
+
+                        <div class="prop-stats-luxe">
+                            <span><i class="fas fa-ruler"></i> @(model.TotalArea > 0 ? model.TotalArea : "0") м²</span>
+                            <span><i class="fas fa-bed"></i> @(model.Rooms > 0 ? model.Rooms : "0") к.</span>
+                            <span><i class="fas fa-layer-group"></i> @(model.Floor ?? 0)/@(model.TotalFloors ?? 0) эт.</span>
+                        </div>
+
+                        @if (model.LivingArea.HasValue || model.WallMaterialId.HasValue)
+                        {
+                            <div class="prop-extra-luxe mt-2 pt-2" style="border-top: 1px solid rgba(255,255,255,0.05); color: #888; font-size: 0.85rem;">
+                                @if (model.LivingArea.HasValue)
+                                {
+                                    <span><i class="fas fa-couch"></i> Жилая @model.LivingArea м²</span>
+                                }
+                                @if (model.WallMaterialId.HasValue)
+                                {
+                                    <span class="ms-3"><i class="fas fa-cubes"></i> @GetWallMaterialName(model.WallMaterialId.Value)</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+</div>
+
+<style>
+    :root {
+        --gold: #f39c12;
+        --gold-hover: #fff;
+        --bg-dark: #0a0a0a;
+        --card-bg: rgba(22, 22, 22, 0.8);
+        --border-glass: rgba(255, 255, 255, 0.06);
+        --text-muted: #888;
+    }
+
+    .elite-dashboard-layout {
+        background: var(--bg-dark);
+        min-height: 100vh;
+        color: #fff;
+        padding: 120px 40px 60px;
+        position: relative;
+        overflow: hidden;
+        font-family: 'Inter', sans-serif;
+    }
+
+    .ambient-glow {
+        position: fixed;
+        top: -10%;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 80vw;
+        height: 60vh;
+        background: radial-gradient(circle, rgba(243, 156, 18, 0.08) 0%, transparent 70%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .dashboard-container {
+        display: grid;
+        grid-template-columns: 1fr 400px;
+        gap: 60px;
+        max-width: 1600px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+    }
+
+    .header-premium { margin-bottom: 40px; }
+    .header-premium h1 { font-size: 3rem; font-weight: 900; margin: 0; letter-spacing: -1px; }
+    .header-premium p { color: var(--text-muted); font-size: 1.1rem; margin-top: 10px; }
+    .gold-dot { color: var(--gold); }
+
+    .form-glass-card {
+        background: var(--card-bg);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border-glass);
+        border-radius: 32px;
+        padding: 50px;
+        box-shadow: 0 20px 50px rgba(0,0,0,0.3);
+    }
+
+    .input-premium-group label {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        margin-bottom: 12px;
+        letter-spacing: 1px;
+    }
+    .input-premium-group label i { color: var(--gold); }
+
+    .luxury-input {
+        width: 100%;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.08);
+        border-radius: 16px;
+        padding: 16px 20px;
+        color: #fff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    .luxury-input:focus {
+        border-color: var(--gold);
+        background: rgba(243, 156, 18, 0.03);
+        outline: none;
+        box-shadow: 0 0 15px rgba(243, 156, 18, 0.1);
+    }
+    .luxury-input::placeholder { color: #444; }
+
+    .luxe-select {
+        appearance: none;
+        background-color: #2a2a2a;
+        color: #fff;
+        cursor: pointer;
+    }
+    .luxe-select option { background-color: #2a2a2a; color: #fff; }
+
+    .price-input { color: var(--gold); font-weight: 700; font-size: 1.1rem; }
+    .val-msg { color: #e74c3c; font-size: 0.8rem; margin-top: 6px; display: block; }
+
+    .btn-premium-solid {
+        background: var(--gold);
+        color: #000;
+        border: none;
+        padding: 18px 40px;
+        border-radius: 18px;
+        font-weight: 800;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.4s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .btn-premium-solid:hover:not(:disabled) {
+        background: var(--gold-hover);
+        transform: translateY(-3px);
+    }
+    .btn-premium-solid:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+    .sticky-preview { position: sticky; top: 120px; }
+    .preview-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 25px; color: #fff; }
+
+    .property-preview-card-luxe {
+        background: #111;
+        border-radius: 24px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.04);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.4);
+    }
+
+    .card-image-wrapper {
+        position: relative;
+        height: 220px;
+        background: #1a1a1a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+    .main-card-img { width: 100%; height: 100%; object-fit: cover; }
+    .image-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 15px;
+        color: #333;
+    }
+
+    .photo-count {
+        position: absolute;
+        bottom: 15px;
+        right: 15px;
+        background: rgba(0,0,0,0.6);
+        padding: 5px 10px;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        backdrop-filter: blur(5px);
+    }
+
+    .card-status-badge {
+        position: absolute;
+        top: 15px;
+        left: 15px;
+        background: var(--gold);
+        color: #000;
+        padding: 4px 10px;
+        border-radius: 6px;
+        font-size: 0.7rem;
+        font-weight: 800;
+        text-transform: uppercase;
+    }
+
+    .card-details-luxe { padding: 25px; }
+    .type-price-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+    }
+    .prop-type { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+    .prop-price { color: var(--gold); font-weight: 800; font-size: 1.2rem; }
+
+    .prop-address {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0 0 20px 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: #fff;
+    }
+
+    .prop-stats-luxe {
+        display: flex;
+        justify-content: space-between;
+        border-top: 1px solid rgba(255,255,255,0.05);
+        padding-top: 15px;
+        color: #aaa;
+        font-size: 0.9rem;
+    }
+    .prop-stats-luxe span { display: flex; align-items: center; gap: 8px; }
+    .prop-stats-luxe i { color: #444; }
+
+    .upload-glass-box {
+        background: rgba(255,255,255,0.01);
+        border: 2px dashed rgba(255,255,255,0.05);
+        border-radius: 20px;
+        padding: 30px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+    .upload-glass-box:hover { border-color: var(--gold); background: rgba(243, 156, 18, 0.02); }
+
+    .upload-trigger { cursor: pointer; display: block; }
+    .upload-trigger .main-text { display: block; margin-top: 15px; font-weight: 700; color: #fff; }
+    .upload-trigger .sub-text { display: block; font-size: 0.8rem; color: var(--text-muted); margin: 5px 0 0; }
+    .hidden-input { display: none; }
+
+    .file-previews-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+        gap: 10px;
+    }
+    .file-thumb {
+        position: relative;
+        height: 60px;
+        border-radius: 8px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+    .alert-error {
+        background: rgba(231, 76, 60, 0.1);
+        border: 1px solid rgba(231, 76, 60, 0.3);
+        color: #e74c3c;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .alert-success {
+        background: rgba(39, 174, 96, 0.1);
+        border: 1px solid rgba(39, 174, 96, 0.3);
+        color: #27ae60;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-size: 0.9rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+
+    .fade-in { animation: fadeIn 0.8s ease-in-out; }
+    @@keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @@media (max-width: 1100px) {
+        .dashboard-container { grid-template-columns: 1fr; }
+    }
+    @@media (max-width: 600px) {
+        .elite-dashboard-layout { padding: 100px 20px; }
+        .form-glass-card { padding: 30px; }
+    }
+</style>
+
+@code {
+    private CreatePropertyRequest model = new();
+    private int? createdPropertyId;
+    private string? statusMessage;
+    private bool isProcessing = false;
+    private List<FilePreview> filePreviews = new();
+    private List<IBrowserFile> originalFiles = new();
+
+    private async Task SubmitProperty()
+    {
+        if (model.PropertyTypeId == 0)
+        {
+            statusMessage = "Ошибка: Выберите тип недвижимости";
+            return;
+        }
+
+        isProcessing = true;
+        statusMessage = null;
+
+        try
+        {
+            var response = await Http.PostAsJsonAsync("properties", model);
+            if (response.IsSuccessStatusCode)
+            {
+                var result = await response.Content.ReadFromJsonAsync<System.Text.Json.JsonElement>();
+                createdPropertyId = result.GetProperty("propertyId").GetInt32();
+            }
+            else
+            {
+                statusMessage = "Ошибка при создании объекта на сервере.";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Ошибка: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        originalFiles.Clear();
+        filePreviews.Clear();
+        var files = e.GetMultipleFiles(10).ToList();
+        originalFiles.AddRange(files);
+
+        foreach (var file in files)
+        {
+            try
+            {
+                var imageFile = await file.RequestImageFileAsync("image/jpeg", 400, 300);
+                using var stream = imageFile.OpenReadStream(2 * 1024 * 1024);
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                var base64 = Convert.ToBase64String(ms.ToArray());
+                filePreviews.Add(new FilePreview { Url = $"data:image/jpeg;base64,{base64}" });
+                StateHasChanged();
+            }
+            catch (Exception ex)
+            {
+                statusMessage = $"Ошибка обработки файла {file.Name}: {ex.Message}";
+            }
+        }
+    }
+
+    private async Task UploadPhotos()
+    {
+        if (createdPropertyId == null || !originalFiles.Any()) return;
+
+        isProcessing = true;
+        statusMessage = "Отправка фотографий...";
+
+        try
+        {
+            using var content = new MultipartFormDataContent();
+            long maxFileSize = 15 * 1024 * 1024;
+
+            foreach (var file in originalFiles)
+            {
+                var stream = file.OpenReadStream(maxFileSize);
+                var fileContent = new StreamContent(stream);
+                fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(file.ContentType);
+                content.Add(fileContent, "files", $"{Guid.NewGuid()}_{file.Name}");
+            }
+
+            using var http = new HttpClient();
+            http.BaseAddress = new Uri("https://localhost:7159/api/");
+            var token = TokenStorage.Token;
+            if (!string.IsNullOrEmpty(token))
+                http.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+            http.Timeout = TimeSpan.FromMinutes(5);
+
+            var response = await http.PostAsync($"images/upload/{createdPropertyId}", content);
+            if (response.IsSuccessStatusCode)
+            {
+                statusMessage = "Объект успешно опубликован!";
+                await Task.Delay(1500);
+                ResetAll();
+            }
+            else
+            {
+                var errorText = await response.Content.ReadAsStringAsync();
+                statusMessage = $"Ошибка сервера {response.StatusCode}: {errorText}";
+            }
+        }
+        catch (Exception ex)
+        {
+            statusMessage = $"Сбой: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+            StateHasChanged();
+        }
+    }
+
+    private void ResetAll()
+    {
+        model = new();
+        createdPropertyId = null;
+        filePreviews.Clear();
+        originalFiles.Clear();
+        statusMessage = "";
+    }
+
+    private string GetPropertyTypeName(int id) => id switch
+    {
+        17 => "Квартира",
+        18 => "Вилла / Дом",
+        19 => "Таунхаус",
+        20 => "Коммерция",
+        21 => "Участок",
+        _ => "Объект"
+    };
+
+    private string GetWallMaterialName(int id) => id switch
+    {
+        20 => "Кирпич",
+        21 => "Панель",
+        22 => "Монолит",
+        23 => "Брус",
+        24 => "Газобетон",
+        25 => "Кирпично-монолитный",
+        _ => "—"
+    };
+
+    public class CreatePropertyRequest
+    {
+        [Required(ErrorMessage = "Введите адрес")]
+        public string Address { get; set; } = "";
+        public int PropertyTypeId { get; set; }
+        public decimal TotalArea { get; set; }
+        public decimal Price { get; set; }
+        public int? Rooms { get; set; }
+        public int? Floor { get; set; }
+        public int? TotalFloors { get; set; }
+        public string? Description { get; set; }
+        public decimal? LivingArea { get; set; }
+        public int? WallMaterialId { get; set; }
+    }
+
+    public class FilePreview
+    {
+        public string Url { get; set; } = "";
+    }
 }

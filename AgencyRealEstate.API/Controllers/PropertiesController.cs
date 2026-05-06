@@ -84,6 +84,19 @@ public class PropertiesController : ControllerBase
         return Ok(properties);
     }
 
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "Administrator,Manager")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var property = await _context.Properties.FindAsync(id);
+        if (property == null) return NotFound();
+
+        property.IsDeleted = true; // Мягкое удаление
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Объект удалён" });
+    }
+
     /// <summary>Детальная информация об объекте (для всех авторизованных)</summary>
     [HttpGet("{id}")]
     [Authorize]
