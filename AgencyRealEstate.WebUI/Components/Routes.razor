@@ -6,19 +6,23 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    @if (context.User.Identity?.IsAuthenticated == true)
-                    {
-                        
-                        <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
-                             <h2>Доступ ограничен<span style="color: #f39c12;">.</span></h2>
-                             <p>У вашей учетной записи недостаточно привилегий.</p>
-                             <a href="/" class="card-btn-pill">Вернуться домой</a>
-                        </div>
-                    }
-                    else
-                    {
-                      
-                        <RedirectToLogin />
+                    @{
+                        var currentUri = NavigationManager.Uri.ToLower();
+                        var baseUri = NavigationManager.BaseUri.ToLower();
+                       
+                        var relativePath = currentUri.Replace(baseUri, "").Trim('/');
+
+                        if (context.User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
+                                <h2>Доступ ограничен</h2>
+                                <a href="/">Вернуться домой</a>
+                            </div>
+                        }
+                        else if (relativePath != "login") 
+                        {
+                            NavigationManager.NavigateTo("login");
+                        }
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
