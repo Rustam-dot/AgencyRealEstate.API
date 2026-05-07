@@ -12,6 +12,8 @@ public class PropertyDto
     public int? Rooms { get; set; }
     public string WallMaterialName { get; set; }
     public decimal? Price { get; set; }
+    public string? Title { get; set; }
+    public int? Bathrooms { get; set; }
     public string Description { get; set; }
     public string StatusName { get; set; }
     public double? Latitude { get; set; }

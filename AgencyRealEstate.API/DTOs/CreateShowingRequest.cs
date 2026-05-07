@@ -8,5 +8,6 @@ public class CreateShowingRequest
     public TimeSpan? Time { get; set; }
     public string ClientName { get; set; } = "";
     public string ClientPhone { get; set; } = "";
+    public string? Email { get; set; }
     public string? Comments { get; set; }
 }

@@ -14,6 +14,9 @@ public partial class User
     public byte[] PasswordSalt { get; set; }
 
     public byte[] PasswordHash { get; set; }
+    public string? Position { get; set; }
+    public string? Bio { get; set; }
+    public string? AvatarUrl { get; set; }
 
     public byte RoleId { get; set; }
 

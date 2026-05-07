@@ -2,370 +2,824 @@
 @rendermode InteractiveServer
 @attribute [Authorize(Roles = "Administrator,Manager,Realtor")]
 @using System.Net.Http.Json
-@using System.Text.Json.Serialization
 @inject HttpClient Http
 
-<div class="elite-showings-layout">
-    <div class="ambient-glow"></div>
+<div class="showings-dashboard">
+    <!-- Header -->
+    <div class="dashboard-header animate-fade-in">
+        <div class="header-content">
+            <h1 class="page-title">Управление <span class="purple-text">показами</span></h1>
+            <p class="page-subtitle">@(showings?.Count ?? 0) всего показов</p>
+        </div>
+    </div>
 
-    <div class="page-wrapper">
-        <header class="page-header">
-            <div class="header-text">
-                <h2 class="elite-title">Моё расписание<span class="gold-dot">.</span></h2>
-                <p class="elite-subtitle">Управление назначенными показами и фиксация результатов</p>
-            </div>
-            <div class="stats-badge">
-                <i class="fas fa-briefcase"></i>
-                <span>@(assignedShowings?.Count ?? 0) активных</span>
-            </div>
-        </header>
+    <!-- Stats Cards -->
+    <div class="stats-grid animate-fade-in" style="animation-delay: 0.1s;">
+        <div class="stat-card @(currentFilter == "all" ? "active" : "")" @onclick='() => SetFilter("all")'>
+            <div class="stat-icon"><i class="fas fa-list"></i></div>
+            <div class="stat-number">@(showings?.Count ?? 0)</div>
+            <div class="stat-label">Все показы</div>
+        </div>
+        <div class="stat-card @(currentFilter == "active" ? "active" : "")" @onclick='() => SetFilter("active")'>
+            <div class="stat-icon"><i class="fas fa-clock"></i></div>
+            <div class="stat-number">@activeCount</div>
+            <div class="stat-label">Активные</div>
+        </div>
+        <div class="stat-card @(currentFilter == "interested" ? "active" : "")" @onclick='() => SetFilter("interested")'>
+            <div class="stat-icon"><i class="fas fa-eye"></i></div>
+            <div class="stat-number">@interestedCount</div>
+            <div class="stat-label">Заинтересованы</div>
+        </div>
+        <div class="stat-card @(currentFilter == "completed" ? "active" : "")" @onclick='() => SetFilter("completed")'>
+            <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+            <div class="stat-number">@completedCount</div>
+            <div class="stat-label">Завершены</div>
+        </div>
+        <div class="stat-card @(currentFilter == "cancelled" ? "active" : "")" @onclick='() => SetFilter("cancelled")'>
+            <div class="stat-icon"><i class="fas fa-times"></i></div>
+            <div class="stat-number">@cancelledCount</div>
+            <div class="stat-label">Отменены</div>
+        </div>
+    </div>
 
-        @if (assignedShowings == null)
-        {
-            <div class="luxe-loader">
-                <div class="spinner"></div>
-                <p>Синхронизация данных...</p>
-            </div>
-        }
-        else if (!assignedShowings.Any())
-        {
-            <div class="empty-state fade-in">
-                <div class="empty-icon-box">
-                    <i class="fas fa-clipboard-list"></i>
-                </div>
-                <h3>Нет назначенных задач</h3>
-                <p>В данный момент у вас нет активных показов. Проверьте вкладку «Свободные заявки».</p>
-            </div>
-        }
-        else
-        {
-            <div class="showing-grid">
-                @foreach (var showing in assignedShowings)
-                {
-                    <div class="showing-card luxe-card fade-in">
-                        <div class="card-inner">
-                            @* Левая колонка: Дата и время *@
-                            <div class="date-side">
-                                <div class="date-badge">
-                                    <span class="day">@showing.ShowingDateTime.Day</span>
-                                    <span class="month">@showing.ShowingDateTime.ToString("MMM").ToUpper()</span>
-                                </div>
-                                <div class="time-label">@showing.ShowingDateTime.ToString("HH:mm")</div>
-                                <div class="type-tag">@showing.PropertyTypeName</div>
-                            </div>
+    <!-- Section Header -->
+    <div class="section-header animate-fade-in" style="animation-delay: 0.2s;">
+        <h2><i class="fas fa-filter"></i> @GetFilterTitle</h2>
+    </div>
 
-                            @* Центр: Информация об объекте и клиенте *@
-                            <div class="content-side">
-                                <h4 class="property-title">
-                                    <i class="fas fa-map-marker-alt title-icon"></i> @showing.PropertyAddress
-                                </h4>
-                                
-                                <div class="client-card">
-                                    <div class="client-tooltip-wrapper">
-                                        @* Триггер (информация о клиенте) *@
-                                        <div class="client-info">
-                                            <div class="avatar-placeholder">
-                                                @(string.IsNullOrWhiteSpace(showing.ClientName) ? "C" : showing.ClientName[0].ToString())
-                                            </div>
-                                            <div>
-                                                <span class="client-name">@showing.ClientName</span>
-                                                <span class="client-phone">@showing.ClientPhone</span>
-                                            </div>
-                                        </div>
-
-                                        @* Всплывающее окно (Карточка клиента) *@
-                                        <div class="client-tooltip">
-                                            <div class="tooltip-header">
-                                                <div class="tooltip-avatar">
-                                                    @(string.IsNullOrWhiteSpace(showing.ClientName) ? "C" : showing.ClientName[0].ToString())
-                                                </div>
-                                                <span class="tooltip-badge">Карточка клиента</span>
-                                            </div>
-                                            <h5 class="tooltip-name">@showing.ClientName</h5>
-                                            
-                                            <div class="tooltip-detail">
-                                                <i class="fas fa-phone-alt"></i> @showing.ClientPhone
-                                            </div>
-
-                                            @if (!string.IsNullOrWhiteSpace(showing.ClientEmail))
-                                            {
-                                                <div class="tooltip-detail">
-                                                    <i class="fas fa-envelope"></i> @showing.ClientEmail
-                                                </div>
-                                            }
-
-                                            @if (!string.IsNullOrWhiteSpace(showing.ClientPassport))
-                                            {
-                                                <div class="tooltip-detail">
-                                                    <i class="fas fa-id-card"></i> @showing.ClientPassport
-                                                </div>
-                                            }
-
-                                            <div class="tooltip-detail">
-                                                <i class="fas fa-calendar-check"></i> Назначено: @showing.ShowingDateTime.ToString("dd.MM.yyyy HH:mm")
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    <div class="action-btns">
-                                        <a href="tel:@showing.ClientPhone" class="btn-action-circle" title="Позвонить">
-                                            <i class="fas fa-phone-alt"></i>
-                                        </a>
-                                    </div>
-                                </div>
-
-                                @if (!string.IsNullOrWhiteSpace(showing.Comments))
-                                {
-                                    <div class="realtor-note">
-                                        <i class="fas fa-comment-dots"></i>
-                                        <p>@showing.Comments</p>
-                                    </div>
-                                }
-                            </div>
-
-                            @* Правая колонка: Управление (ПРЕМИАЛЬНЫЙ ВИД) *@
-                            <div class="control-side">
-                                <div class="status-selector-group">
-                                    <label>Результат встречи</label>
-                                    <div class="select-premium-wrapper">
-                                        <select @bind="showing.SelectedResultId">
-                                            <option value="" disabled selected>Установить статус</option>
-                                            <option value="1">Завершён</option>
-                                            <option value="2">Отказ</option>
-                                            <option value="3">Заинтересован</option>
-                                            <option value="4">Перенесён</option>
-                                            <option value="5">Неявка</option>
-                                        </select>
-                                        <i class="fas fa-angle-down"></i>
-                                    </div>
-                                </div>
-                                <button class="btn-save-premium" @onclick="() => SaveResult(showing)" disabled="@(showing.SelectedResultId == null)">
-                                    <span>Зафиксировать</span>
-                                </button>
+    @if (showings == null)
+    {
+        <div class="loader-container">
+            <div class="premium-spinner"></div>
+        </div>
+    }
+    else if (!FilteredShowings.Any())
+    {
+        <div class="empty-state animate-fade-in">
+            <i class="fas fa-inbox"></i>
+            <p>В данной категории нет показов</p>
+        </div>
+    }
+    else
+    {
+        <div class="showings-grid">
+            @foreach (var showing in FilteredShowings)
+            {
+                <div class="showing-card animate-fade-up">
+                    <div class="card-header">
+                        <div class="property-info">
+                            <i class="fas fa-map-marker-alt"></i>
+                            <div>
+                                <h3>@showing.PropertyTitle</h3>
+                                <small class="property-address">@showing.PropertyAddress</small>
                             </div>
                         </div>
+                        <span class="status-badge @GetStatusClass(showing.ResultId)">
+                            @GetStatusName(showing.ResultId)
+                        </span>
                     </div>
-                }
-            </div>
-        }
-    </div>
+                    
+                    <div class="card-body">
+                        <div class="property-type">
+                            <i class="fas fa-building"></i>
+                            <span>@showing.PropertyTypeName</span>
+                        </div>
+                        <div class="client-info">
+                            <i class="fas fa-user"></i>
+                            <span>@showing.ClientName</span>
+                        </div>
+                        <div class="client-phone">
+                            <i class="fas fa-phone"></i>
+                            <a href="tel:@showing.ClientPhone">@showing.ClientPhone</a>
+                        </div>
+                        <div class="showing-datetime">
+                            <span class="date"><i class="fas fa-calendar"></i> @showing.ShowingDateTime.ToString("dd.MM.yyyy")</span>
+                            <span class="time"><i class="fas fa-clock"></i> @showing.ShowingDateTime.ToString("HH:mm")</span>
+                        </div>
+                    </div>
+
+                    <div class="card-footer">
+                        <span class="realtor-name">Риелтор: @showing.RealtorName</span>
+                        
+                        <!-- Красивая кнопка для смены статуса -->
+                       <button class="btn-change-status" @onclick="() => OpenChangeStatusModal(showing)">
+    <span>Изменить статус</span>
+</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
 </div>
+
+<!-- Change Status Modal - КРАСИВЫЙ ВАРИАНТ -->
+@if (showChangeStatusModal && selectedShowing != null)
+{
+    <div class="modal-backdrop" @onclick="CloseChangeStatusModal">
+        <div class="modal-content small" @onclick:stopPropagation>
+            <div class="modal-header">
+                <h2>Изменить статус</h2>
+                <button class="btn-close" @onclick="CloseChangeStatusModal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="status-options">
+                    <div class="status-option completed" @onclick="() => ChangeStatus(1)">
+                        <i class="fas fa-check-circle"></i>
+                        <div>
+                            <strong>Завершён</strong>
+                            <small>Показ успешно проведён</small>
+                        </div>
+                    </div>
+                    <div class="status-option interested" @onclick="() => ChangeStatus(3)">
+                        <i class="fas fa-eye"></i>
+                        <div>
+                            <strong>Заинтересован</strong>
+                            <small>Клиент заинтересован в объекте</small>
+                        </div>
+                    </div>
+                    <div class="status-option refused" @onclick="() => ChangeStatus(2)">
+                        <i class="fas fa-times-circle"></i>
+                        <div>
+                            <strong>Отказ</strong>
+                            <small>Клиент отказался</small>
+                        </div>
+                    </div>
+                    <div class="status-option postponed" @onclick="() => ChangeStatus(4)">
+                        <i class="fas fa-calendar-alt"></i>
+                        <div>
+                            <strong>Перенесён</strong>
+                            <small>Показ перенесён на другое время</small>
+                        </div>
+                    </div>
+                    <div class="status-option noshow" @onclick="() => ChangeStatus(5)">
+                        <i class="fas fa-user-times"></i>
+                        <div>
+                            <strong>Неявка</strong>
+                            <small>Клиент не пришёл</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
 
 <style>
     :root {
-        --gold: #f39c12;
-        --bg-dark: #0a0a0a;
-        --bg-card: #141414;
-        --glass-border: rgba(255, 255, 255, 0.08);
-        --text-dim: #777;
+        --primary: #8b5cf6;
+        --primary-dark: #7c3aed;
+        --active: #3b82f6;
+        --interested: #f59e0b;
+        --completed: #10b981;
+        --not-interested: #6b7280;
+        --cancelled: #ef4444;
+        --bg: #faf5ff;
+        --card-bg: #ffffff;
+        --text: #1f2937;
+        --text-muted: #6b7280;
     }
 
-    .elite-showings-layout {
-        background: var(--bg-dark); min-height: 100vh; color: #fff;
-        padding: 120px 40px 60px; position: relative; overflow: hidden;
-        font-family: 'Inter', sans-serif;
+    .showings-dashboard {
+        min-height: 100vh;
+        background: var(--bg);
+        padding: 100px 40px 40px;
+        font-family: 'Inter', system-ui, sans-serif;
     }
 
-    .ambient-glow {
-        position: fixed; top: -10%; left: -10%; width: 40%; height: 40%;
-        background: radial-gradient(circle, rgba(243, 156, 18, 0.05) 0%, transparent 70%);
-        pointer-events: none; z-index: 1;
+    .dashboard-header {
+        margin-bottom: 32px;
     }
 
-    .page-wrapper { max-width: 1200px; margin: 0 auto; position: relative; z-index: 2; }
-
-    /* HEADER */
-    .page-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
-    .elite-title { font-size: 2.8rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
-    .gold-dot { color: var(--gold); }
-    .elite-subtitle { color: var(--text-dim); margin-top: 8px; font-size: 1.1rem; }
-
-    .stats-badge {
-        background: rgba(255,255,255,0.03); border: 1px solid var(--glass-border);
-        padding: 12px 24px; border-radius: 50px; display: flex; align-items: center; gap: 12px;
-        color: var(--gold); font-weight: 700;
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0;
+        color: var(--text);
     }
 
-    /* GRID & CARDS */
-    .showing-grid { display: flex; flex-direction: column; gap: 24px; }
-
-    .luxe-card {
-        background: var(--bg-card); border-radius: 24px; border: 1px solid var(--glass-border);
-        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
-    }
-    .luxe-card:hover { transform: translateY(-4px); border-color: rgba(243, 156, 18, 0.3); box-shadow: 0 20px 40px rgba(0,0,0,0.4); }
-
-    .card-inner { display: flex; padding: 30px; gap: 40px; align-items: stretch; }
-
-    /* DATE SIDE */
-    .date-side {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        min-width: 120px; padding-right: 40px; border-right: 1px solid rgba(255,255,255,0.05);
-    }
-    .date-badge .day { display: block; font-size: 2.5rem; font-weight: 900; line-height: 1; color: #fff; }
-    .date-badge .month { font-size: 0.9rem; font-weight: 700; color: var(--gold); letter-spacing: 2px; }
-    .time-label { margin-top: 12px; font-weight: 800; font-size: 1.2rem; color: #aaa; }
-    .type-tag { 
-        margin-top: 15px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; 
-        background: rgba(255,255,255,0.05); padding: 6px 12px; border-radius: 6px; color: #888;
-        letter-spacing: 1px;
+    .purple-text {
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
     }
 
-    /* CONTENT SIDE */
-    .content-side { flex: 1; display: flex; flex-direction: column; justify-content: center; }
-    .property-title { font-size: 1.5rem; font-weight: 700; margin: 0 0 20px 0; color: #fff; display: flex; align-items: center; gap: 10px; }
-    .title-icon { color: var(--gold); font-size: 1.2rem; }
-
-    /* CLIENT CARD */
-    .client-card {
-        background: rgba(0,0,0,0.3); border-radius: 16px; padding: 15px 20px;
-        display: flex; justify-content: space-between; align-items: center; 
-        border: 1px solid rgba(255,255,255,0.04); width: max-content; min-width: 320px;
-        max-width: 100%; position: relative;
+    .page-subtitle {
+        color: var(--text-muted);
+        margin: 4px 0 0;
+        font-size: 1.1rem;
     }
 
-    .client-tooltip-wrapper { position: relative; display: inline-flex; }
-
-    .client-info { display: flex; align-items: center; gap: 15px; cursor: help; }
-    .avatar-placeholder { 
-        width: 44px; height: 44px; background: rgba(243, 156, 18, 0.1); border-radius: 50%; 
-        display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.2rem;
-        color: var(--gold); border: 1px solid rgba(243, 156, 18, 0.2); 
-    }
-    .client-name { display: block; font-weight: 700; font-size: 1.1rem; color: #eee; }
-    .client-phone { display: block; font-size: 0.9rem; color: var(--text-dim); }
-
-    /* Tooltip */
-    .client-tooltip {
-        visibility: hidden; opacity: 0; position: absolute;
-        bottom: calc(100% + 15px); left: 0; transform: translateY(10px);
-        background: #1a1a1a; border: 1px solid rgba(243, 156, 18, 0.3);
-        padding: 20px; border-radius: 16px; box-shadow: 0 15px 35px rgba(0,0,0,0.6);
-        min-width: 300px; z-index: 9999; pointer-events: none;
-        transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        word-break: break-word;
-    }
-    
-    .client-tooltip-wrapper:hover .client-tooltip { visibility: visible; opacity: 1; transform: translateY(0); }
-
-    .client-tooltip::after {
-        content: ''; position: absolute; top: 100%; left: 20px;
-        border-width: 8px; border-style: solid;
-        border-color: rgba(243, 156, 18, 0.3) transparent transparent transparent;
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(5, 1fr);
+        gap: 20px;
+        margin-bottom: 40px;
     }
 
-    .tooltip-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 15px; }
-    .tooltip-avatar { width: 45px; height: 45px; background: var(--gold); color: #000; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: 1.3rem; }
-    .tooltip-badge { background: rgba(255,255,255,0.05); color: #888; font-size: 0.65rem; padding: 4px 10px; border-radius: 50px; text-transform: uppercase; letter-spacing: 1px; }
-    .tooltip-name { margin: 0 0 12px 0; font-size: 1.2rem; font-weight: 800; }
-    .tooltip-detail { font-size: 0.9rem; color: #bbb; margin-bottom: 8px; display: flex; align-items: center; gap: 12px; }
-    .tooltip-detail i { color: var(--gold); width: 14px; text-align: center; }
-
-    /* CONTROLS (SELECT & BUTTON) */
-    .control-side { width: 260px; display: flex; flex-direction: column; justify-content: center; gap: 15px; }
-    
-    .status-selector-group label { font-size: 0.75rem; font-weight: 800; color: #555; margin-bottom: 8px; display: block; text-transform: uppercase; }
-    
-    .select-premium-wrapper { position: relative; }
-    
-    .select-premium-wrapper select {
-        width: 100%; background: rgba(255, 255, 255, 0.03); 
-        border: 1px solid rgba(255, 255, 255, 0.1); color: #fff;
-        padding: 15px 40px 15px 15px; border-radius: 12px; outline: none; cursor: pointer;
-        appearance: none !important; -webkit-appearance: none !important; -moz-appearance: none !important;
-        font-weight: 500; transition: 0.3s;
+    .stat-card {
+        background: var(--card-bg);
+        border-radius: 16px;
+        padding: 24px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+        text-align: center;
     }
 
-    .select-premium-wrapper select:focus { border-color: var(--gold); background: rgba(0,0,0,0.3); }
-
-    .select-premium-wrapper i {
-        position: absolute; right: 15px; top: 50%; transform: translateY(-50%);
-        color: var(--gold); pointer-events: none; transition: 0.3s;
+    .stat-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.1);
     }
 
-    .select-premium-wrapper:focus-within i { transform: translateY(-50%) rotate(180deg); }
-
-    .btn-save-premium {
-        background: transparent; color: var(--gold); border: 1px solid var(--gold); 
-        padding: 15px; border-radius: 12px; font-weight: 800; cursor: pointer; 
-        transition: all 0.3s ease; text-transform: uppercase; font-size: 0.85rem; letter-spacing: 1px;
+    .stat-card.active {
+        border-color: var(--primary);
+        background: var(--primary-bg);
     }
 
-    .btn-save-premium:hover:not(:disabled) { background: var(--gold); color: #000; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(243,156,18,0.2); }
-    .btn-save-premium:disabled { opacity: 0.2; cursor: not-allowed; border-color: #444; color: #666; }
-
-    /* UTILS */
-    .btn-action-circle {
-        width: 44px; height: 44px; border-radius: 50%; background: rgba(243, 156, 18, 0.1);
-        color: var(--gold); display: flex; align-items: center; justify-content: center;
-        text-decoration: none; transition: 0.3s;
+    .stat-icon {
+        font-size: 1.5rem;
+        margin-bottom: 12px;
+        color: var(--primary);
     }
-    .btn-action-circle:hover { background: var(--gold); color: #000; transform: scale(1.1); }
 
-    .realtor-note { margin-top: 20px; display: flex; gap: 12px; color: #888; background: rgba(255,255,255,0.02); padding: 15px; border-radius: 12px; border-left: 3px solid #333; }
-    .realtor-note p { margin: 0; font-size: 0.95rem; font-style: italic; }
+    .stat-card.active .stat-icon { color: var(--primary); }
 
-    .fade-in { animation: fadeIn 0.5s ease forwards; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .stat-number {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 4px;
+        color: var(--text);
+    }
 
-    @@media (max-width: 950px) {
-        .card-inner { flex-direction: column; }
-        .date-side { border-right: none; border-bottom: 1px solid #222; padding: 0 0 20px 0; width: 100%; flex-direction: row; justify-content: space-between; }
-        .control-side { width: 100%; }
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    /* Section Header */
+    .section-header {
+        margin-bottom: 24px;
+    }
+
+    .section-header h2 {
+        font-size: 1.25rem;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin: 0;
+        color: var(--text);
+    }
+
+    .section-header i {
+        color: var(--primary);
+    }
+
+    /* Showings Grid */
+    .showings-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 24px;
+    }
+
+    .showing-card {
+        background: var(--card-bg);
+        border-radius: 20px;
+        padding: 24px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+        transition: all 0.3s;
+    }
+
+    .showing-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 32px rgba(139, 92, 246, 0.15);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 16px;
+        gap: 12px;
+    }
+
+    .property-info {
+        display: flex;
+        align-items: flex-start;
+        gap: 8px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .property-info i {
+        color: var(--primary);
+        margin-top: 4px;
+        flex-shrink: 0;
+    }
+
+    .property-info h3 {
+        font-size: 1.1rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--text);
+        line-height: 1.2;
+    }
+
+    .property-address {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        display: block;
+        margin-top: 4px;
+    }
+
+    .status-badge {
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+        white-space: nowrap;
+    }
+
+    .status-badge.completed {
+        background: #d1fae5;
+        color: var(--completed);
+    }
+
+    .status-badge.interested {
+        background: #fef3c7;
+        color: var(--interested);
+    }
+
+    .status-badge.refused, .status-badge.cancelled {
+        background: #fee2e2;
+        color: var(--cancelled);
+    }
+
+    .status-badge.postponed {
+        background: #e0e7ff;
+        color: var(--active);
+    }
+
+    .status-badge.noshow {
+        background: #f3f4f6;
+        color: var(--not-interested);
+    }
+
+    .card-body {
+        margin-bottom: 20px;
+    }
+
+    .property-type {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding: 8px 12px;
+        background: var(--primary-bg);
+        border-radius: 8px;
+        font-size: 0.875rem;
+        color: var(--primary);
+        font-weight: 600;
+    }
+
+    .property-type i {
+        color: var(--primary);
+        width: 16px;
+    }
+
+    .client-info, .client-phone {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 8px;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+    }
+
+    .client-info i, .client-phone i {
+        color: var(--primary);
+        width: 16px;
+    }
+
+    .client-phone a {
+        color: var(--primary);
+        text-decoration: none;
+    }
+
+    .showing-datetime {
+        display: flex;
+        gap: 16px;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid #f3f4f6;
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .showing-datetime i {
+        color: var(--primary);
+        margin-right: 4px;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 16px;
+        border-top: 1px solid #f3f4f6;
+        gap: 12px;
+        flex-wrap: wrap;
+    }
+
+    .realtor-name {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+    }
+
+    .btn-change-status {
+    background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+    color: white;
+    border: none;
+    padding: 12px 24px; /* Чуть больше паддинг без иконки */
+    border-radius: 10px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+  .btn-change-status:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(139, 92, 246, 0.3);
+}
+
+    /* Modal - КРАСИВЫЙ СТИЛЬ */
+    .modal-backdrop {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        backdrop-filter: blur(4px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        animation: fadeIn 0.3s;
+    }
+
+    .modal-content {
+        background: white;
+        border-radius: 24px;
+        width: 90%;
+        max-width: 600px;
+        max-height: 80vh;
+        overflow: hidden;
+        animation: slideUp 0.3s;
+        box-shadow: 0 25px 50px rgba(0,0,0,0.2);
+    }
+
+    .modal-header {
+        padding: 24px 32px;
+        border-bottom: 1px solid #f3f4f6;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .modal-header h2 {
+        margin: 0;
+        font-size: 1.5rem;
+        color: var(--primary);
+    }
+
+    .btn-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: var(--text-muted);
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s;
+    }
+
+    .btn-close:hover {
+        background: #f3f4f6;
+        color: var(--text);
+    }
+
+    .modal-body {
+        padding: 32px;
+        overflow-y: auto;
+        max-height: 60vh;
+    }
+
+    /* Status Options - КРАСИВЫЕ КНОПКИ */
+    .status-options {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .status-option {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: #f9fafb;
+        border-radius: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        border: 2px solid transparent;
+    }
+
+    .status-option:hover {
+        background: white;
+        transform: translateX(4px);
+    }
+
+    .status-option.completed:hover { border-color: var(--completed); }
+    .status-option.interested:hover { border-color: var(--interested); }
+    .status-option.refused:hover { border-color: var(--cancelled); }
+    .status-option.postponed:hover { border-color: var(--active); }
+    .status-option.noshow:hover { border-color: var(--not-interested); }
+
+    .status-option i {
+        font-size: 1.5rem;
+        width: 32px;
+        text-align: center;
+    }
+
+    .status-option.completed i { color: var(--completed); }
+    .status-option.interested i { color: var(--interested); }
+    .status-option.refused i { color: var(--cancelled); }
+    .status-option.postponed i { color: var(--active); }
+    .status-option.noshow i { color: var(--not-interested); }
+
+    .status-option div {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .status-option strong {
+        font-size: 1rem;
+        color: var(--text);
+    }
+
+    .status-option small {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 2px;
+    }
+
+    /* Loader & Empty */
+    .loader-container {
+        text-align: center;
+        padding: 100px 20px;
+    }
+
+    .premium-spinner {
+        width: 50px;
+        height: 50px;
+        border: 3px solid #f3f4f6;
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 100px 20px;
+        color: var(--text-muted);
+        background: white;
+        border-radius: 20px;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        opacity: 0.3;
+    }
+
+    .status-badge.scheduled {
+    background: #f5f3ff;
+    color: #7c3aed;
+    font-weight: 700;
+    border: 1px solid #e9d5ff;
+}
+
+    /* Animations */
+    @@keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+    }
+
+    @@keyframes slideUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .animate-fade-in {
+        animation: fadeIn 0.6s ease forwards;
+    }
+
+    .animate-fade-up {
+        opacity: 0;
+        animation: slideUp 0.6s ease forwards;
+    }
+
+    /* Responsive */
+    @@media (max-width: 1200px) {
+        .stats-grid {
+            grid-template-columns: repeat(3, 1fr);
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .showings-dashboard {
+            padding: 80px 20px 20px;
+        }
+
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .showings-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .card-footer {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .btn-change-status {
+            justify-content: center;
+        }
     }
 </style>
 
 @code {
-    private List<AssignedShowingDto>? assignedShowings;
+    private List<ShowingDto>? showings;
+    private string currentFilter = "all";
+    private bool showChangeStatusModal = false;
+    private ShowingDto? selectedShowing;
+
+    private int activeCount => showings?.Count(s => s.ResultId == null) ?? 0;
+    private int interestedCount => showings?.Count(s => s.ResultId == 3) ?? 0;
+    private int completedCount => showings?.Count(s => s.ResultId == 1) ?? 0;
+    private int notInterestedCount => showings?.Count(s => s.ResultId == 2) ?? 0;
+    private int cancelledCount => showings?.Count(s => s.ResultId == 4 || s.ResultId == 5) ?? 0;
+
+    private string GetFilterTitle => currentFilter switch
+    {
+        "all" => "Все показы",
+        "active" => "Активные показы",
+        "interested" => "Заинтересованные клиенты",
+        "completed" => "Завершённые показы",
+        "cancelled" => "Отменены",
+        _ => "Показы"
+    };
+
+    private IEnumerable<ShowingDto> FilteredShowings
+    {
+        get
+        {
+            if (showings == null) return new List<ShowingDto>();
+            
+            var filtered = currentFilter switch
+            {
+                "active" => showings.Where(s => s.ResultId == null),
+                "interested" => showings.Where(s => s.ResultId == 3),
+                "completed" => showings.Where(s => s.ResultId == 1),
+                "cancelled" => showings.Where(s => s.ResultId == 2 || s.ResultId == 4 || s.ResultId == 5),
+                _ => showings
+            };
+
+            // ✅ СОРТИРОВКА ПО ДАТЕ: ближайшие показы сверху
+            return filtered.OrderBy(s => s.ShowingDateTime);
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
-        await LoadAssigned();
+        await LoadShowings();
     }
 
-    private async Task LoadAssigned()
+    private async Task LoadShowings()
     {
         try
         {
-            await Task.Delay(300); 
-            // УБРАЛ "api/" перед showings, так как он обычно уже в BaseAddress
-            assignedShowings = await Http.GetFromJsonAsync<List<AssignedShowingDto>>("showings/assigned");
+            await Task.Delay(300);
+            var result = await Http.GetFromJsonAsync<List<ShowingDto>>("showings/all-assigned");
+            showings = result ?? new List<ShowingDto>();
         }
         catch (Exception ex)
         {
-            // Для отладки: выведите ошибку в консоль браузера (F12)
-            Console.WriteLine($"Ошибка загрузки: {ex.Message}");
-            assignedShowings = new();
+            Console.WriteLine($"Error loading showings: {ex.Message}");
+            showings = new List<ShowingDto>();
         }
     }
 
-    private async Task SaveResult(AssignedShowingDto showing)
+    private void SetFilter(string filter)
     {
-        if (showing.SelectedResultId == null) return;
+        currentFilter = filter;
+    }
+
+    private void OpenChangeStatusModal(ShowingDto showing)
+    {
+        selectedShowing = showing;
+        showChangeStatusModal = true;
+    }
+
+    private void CloseChangeStatusModal()
+    {
+        showChangeStatusModal = false;
+        selectedShowing = null;
+    }
+
+    private async Task ChangeStatus(byte resultId)
+    {
+        if (selectedShowing == null) return;
+
         try
         {
-            var response = await Http.PutAsJsonAsync($"showings/{showing.ShowingId}/result", new
+            var response = await Http.PutAsJsonAsync($"showings/{selectedShowing.ShowingId}/result", new
             {
-                ResultId = showing.SelectedResultId.Value,
-                Comments = showing.Comments
+                ResultId = resultId,
+                Comments = selectedShowing.Comments
             });
 
-            if (response.IsSuccessStatusCode) await LoadAssigned();
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadShowings();
+                CloseChangeStatusModal();
+            }
         }
-        catch { }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error changing status: {ex.Message}");
+        }
     }
 
-    public class AssignedShowingDto
+ private string GetStatusClass(byte? resultId)
+{
+    return resultId switch
+    {
+        null => "scheduled", 
+        1 => "completed",
+        2 => "refused",
+        3 => "interested",
+        4 => "postponed",
+        5 => "noshow",
+        _ => ""
+    };
+}
+
+    private string GetStatusName(byte? resultId)
+    {
+        return resultId switch
+        {
+            null => "🕐 Запланирован",
+            1 => "✅ Завершён",
+            2 => "❌ Отказ",
+            3 => "👁 Заинтересован",
+            4 => "📅 Перенесён",
+            5 => "🚫 Неявка",
+            _ => "❓ Неизвестно"
+        };
+    }
+
+    public class ShowingDto
     {
         public int ShowingId { get; set; }
         public DateTime ShowingDateTime { get; set; }
         public string PropertyAddress { get; set; } = "";
-        public string PropertyTypeName { get; set; } = "";  
+        public string PropertyTitle { get; set; } = "";
+        public string PropertyTypeName { get; set; } = "";
         public string ClientName { get; set; } = "";
         public string ClientPhone { get; set; } = "";
-        public string? ClientEmail { get; set; }        
-        public string? ClientPassport { get; set; }    
+        public string? ClientEmail { get; set; }
+        public string? ClientPassport { get; set; }
         public string? Comments { get; set; }
-        public byte? SelectedResultId { get; set; }
+        public string? RealtorName { get; set; }
+        public byte? ResultId { get; set; }
     }
 }

@@ -19,11 +19,13 @@ public class ClientsController : ControllerBase
     }
 
     [HttpGet]
+    [HttpGet]
     public async Task<IActionResult> GetClients()
     {
-        // Получаем всех пользователей с ролью Client (RoleId = 4)
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
         var users = await _context.Users
-            .Where(u => u.RoleId == 4 && u.IsActive)  // только активные клиенты
+            .Where(u => u.RoleId == 4 && u.IsActive)
             .Select(u => new
             {
                 u.UserId,
@@ -33,12 +35,16 @@ public class ClientsController : ControllerBase
                 FullName = _context.Clients
                     .Where(c => c.UserId == u.UserId)
                     .Select(c => c.FullName)
-                    .FirstOrDefault() ?? u.Login,   // если нет имени клиента, показываем логин
+                    .FirstOrDefault() ?? u.Login,
                 Phone = _context.Clients
                     .Where(c => c.UserId == u.UserId)
                     .Select(c => c.Phone)
                     .FirstOrDefault() ?? "—",
-                CreatedAt = u.CreatedAt
+                CreatedAt = u.CreatedAt,
+                // Формируем абсолютный URL для аватара
+                AvatarUrl = string.IsNullOrEmpty(u.AvatarUrl)
+                    ? null
+                    : (u.AvatarUrl.StartsWith("/") ? $"{baseUrl}{u.AvatarUrl}" : u.AvatarUrl)
             })
             .OrderBy(u => u.Login)
             .ToListAsync();

@@ -39,6 +39,7 @@ public class ShowingsController : ControllerBase
             {
                 FullName = request.ClientName,
                 Phone = request.ClientPhone,
+                Email = request.Email,                   // 👈 сохраняем email
                 CreatedByUserId = currentUserId
             };
             _context.Clients.Add(client);
@@ -48,6 +49,8 @@ public class ShowingsController : ControllerBase
         {
             if (!string.IsNullOrWhiteSpace(request.ClientName))
                 client.FullName = request.ClientName;
+            if (!string.IsNullOrWhiteSpace(request.Email))  // 👈 обновляем email, если передан
+                client.Email = request.Email;
         }
 
         var showing = new Showing
@@ -63,6 +66,39 @@ public class ShowingsController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = "Заявка создана", showingId = showing.ShowingId });
+    }
+
+    [HttpGet("all-assigned")]
+    [Authorize(Roles = "Administrator,Manager,Realtor")]
+    public async Task<IActionResult> GetAllAssignedShowings()
+    {
+        int userId = GetCurrentUserId();
+        var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == userId);
+        if (employee == null) return BadRequest("Сотрудник не найден");
+
+        var showings = await _context.Showings
+            .Include(s => s.Property).ThenInclude(p => p.PropertyType)
+            .Include(s => s.Client)
+            .Where(s => s.RealtorId == employee.EmployeeId)
+            .Select(s => new
+            {
+                s.ShowingId,
+                s.ShowingDateTime,
+                PropertyAddress = s.Property.Address,
+                PropertyTitle = s.Property.Title,  // 👈 ДОБАВИТЬ ЭТО
+                PropertyTypeName = s.Property.PropertyType.Name,
+                ClientName = s.Client.FullName,
+                ClientPhone = s.Client.Phone,
+                ClientEmail = s.Client.Email,
+                ClientPassport = s.Client.PassportData,
+                RealtorName = s.Realtor != null ? s.Realtor.FullName : null,
+                ResultId = s.ShowingResultId,
+                s.Comments
+            })
+            .OrderByDescending(s => s.ShowingDateTime)
+            .ToListAsync();
+
+        return Ok(showings);
     }
 
     // Список свободных показов (RealtorId == null)
@@ -94,14 +130,15 @@ public class ShowingsController : ControllerBase
     public async Task<IActionResult> GetMyShowings()
     {
         int userId = GetCurrentUserId();
-
-        // Получаем ClientId текущего пользователя (берём первого, если их несколько)
         var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
         int? clientId = client?.ClientId;
+
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
 
         var showings = await _context.Showings
             .Include(s => s.Property)
             .Include(s => s.Realtor)
+                .ThenInclude(r => r.User)  // Получаем пользователя риелтора
             .Include(s => s.ShowingResult)
             .Where(s => s.CreatedByUserId == userId)
             .Select(s => new
@@ -110,15 +147,19 @@ public class ShowingsController : ControllerBase
                 s.ShowingDateTime,
                 PropertyAddress = s.Property.Address,
                 RealtorName = s.Realtor != null ? s.Realtor.FullName : "Не назначен",
+                RealtorAvatarUrl = s.Realtor != null && s.Realtor.User != null && !string.IsNullOrEmpty(s.Realtor.User.AvatarUrl)
+                    ? (s.Realtor.User.AvatarUrl.StartsWith("/")
+                        ? $"{baseUrl}{s.Realtor.User.AvatarUrl}"
+                        : s.Realtor.User.AvatarUrl)
+                    : null,
                 ResultName = s.ShowingResult != null ? s.ShowingResult.ResultName : null,
                 s.Comments,
-                // Кнопка активна, если показ завершён/заинтересован и ещё нет активной сделки
                 CanDeal = s.ShowingResult != null &&
                     (s.ShowingResult.ResultName == "Completed" || s.ShowingResult.ResultName == "Interested") &&
                     (clientId == null || !_context.Deals.Any(d =>
                         d.PropertyId == s.PropertyId &&
-                        d.BuyerId == clientId &&       // сделка этого же клиента
-                        d.DealStatusId != 3))          // не отменённая
+                        d.BuyerId == clientId &&
+                        d.DealStatusId != 3))
             })
             .OrderByDescending(s => s.ShowingDateTime)
             .ToListAsync();

@@ -8,94 +8,153 @@
 @attribute [Authorize]
 
 <div class="main-container">
-    @* Декоративные фоновые свечения *@
-    <div class="bg-orbs">
-        <div class="orb orb-1"></div>
-        <div class="orb orb-2"></div>
-    </div>
-
-    <section class="hero-block">
-        <div class="hero-overlay"></div>
-        <div class="hero-content">
+    <!-- Header с роль-зависимой навигацией -->
+    <header class="main-header">
+        <div class="header-content">
+            <div class="logo" @onclick='() => Navigation.NavigateTo("/")' style="cursor: pointer;">
+                <i class="fas fa-home"></i>
+                <span>РеалтиПро</span>
+            </div>
+            
+            <nav class="main-nav">
+                <a href="/properties" class="nav-link">Каталог</a>
+                <AuthorizeView Roles="Administrator,Manager">
+                    <Authorized>
+                        <a href="/reports" class="nav-link">Отчёты</a>
+                    </Authorized>
+                </AuthorizeView>
+                <a href="/about" class="nav-link">О нас</a>
+                <a href="/contacts" class="nav-link">Контакты</a>
+            </nav>
             
             <AuthorizeView>
                 <Authorized>
-                    <div class="user-badge fade-in">
-                        <span class="status-dot"></span>
-                        Добро пожаловать, <span class="user-name">@context.User.Identity?.Name</span>
+                    <div class="user-menu">
+                        <a href="/profile" class="btn-profile">
+                            <i class="fas fa-user"></i>
+                            <span>Профиль</span>
+                        </a>
+                        <a href="/logout" class="btn-logout">
+                            <i class="fas fa-sign-out-alt"></i>
+                        </a>
+                    </div>
+                </Authorized>
+                <NotAuthorized>
+                    <div class="auth-buttons">
+                        <a href="/login" class="btn-login">Вход</a>
+                        <a href="/register" class="btn-register">Регистрация</a>
+                    </div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-block">
+        <div class="hero-content">
+            <AuthorizeView>
+                <Authorized>
+                    <div class="user-greeting fade-in">
+                        Добро пожаловать, <b>@context.User.Identity?.Name</b>!
                     </div>
                 </Authorized>
             </AuthorizeView>
 
-            <h1 class="hero-title fade-in">Эксклюзивная <br/><span class="gold-gradient">недвижимость</span></h1>
-            <p class="hero-subtitle fade-in-delay">Найдите идеальное место для жизни в Elite Estates</p>
+            <h1 class="hero-title animate-slide-up">
+                Найдите <span class="gradient-text">Дом Мечты</span>
+            </h1>
+            <p class="hero-subtitle animate-slide-up delay-100">
+                Современная платформа для поиска и продажи недвижимости<br/>
+                премиум-класса
+            </p>
             
-            <div class="search-bar-premium fade-in-delay">
+            <div class="search-bar animate-slide-up delay-200">
                 <div class="search-input-wrapper">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <input type="text" placeholder="Город, район или ЖК..." @bind="searchQuery" @onkeydown="OnKeyDown" />
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" placeholder="Поиск по городу, району или адресу..." 
+                           @bind="searchQuery" 
+                           @onkeydown="OnKeyDown" />
                 </div>
-                <button class="search-btn" @onclick="Search">
-                    <span>Найти</span>
-                    <i class="fas fa-search"></i>
-                </button>
+                <button class="search-btn" @onclick="Search">Найти</button>
+            </div>
+
+            <!-- Stats Grid -->
+            <div class="stats-grid">
+                <div class="stat-item animate-slide-up delay-300">
+                    <div class="stat-icon">
+                        <i class="fas fa-building"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>1000+ Объектов</h3>
+                        <p>В нашей базе недвижимости</p>
+                    </div>
+                </div>
+                <div class="stat-item animate-slide-up delay-400">
+                    <div class="stat-icon">
+                        <i class="fas fa-user-tie"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>Опытные Агенты</h3>
+                        <p>Профессиональная поддержка</p>
+                    </div>
+                </div>
+                <div class="stat-item animate-slide-up delay-500">
+                    <div class="stat-icon">
+                        <i class="fas fa-award"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>10+ Лет</h3>
+                        <p>Успешной работы на рынке</p>
+                    </div>
+                </div>
+                <div class="stat-item animate-slide-up delay-600">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-info">
+                        <h3>98% Сделок</h3>
+                        <p>Завершены успешно</p>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
 
+    <!-- Featured Properties -->
     <div class="page-wrapper">
         <div class="section-header">
             <div class="title-area">
-                <h2 class="section-title">Популярные объекты<span class="gold-dot">.</span></h2>
-                <div class="section-line"></div>
+                <h2 class="section-title">Избранные Объекты</h2>
+                <p class="section-subtitle">Лучшие предложения этого месяца</p>
             </div>
-            <div class="filter-pills">
-                <button class="pill @(selectedType == null ? "active" : "")" @onclick='() => FilterByType(null)'>
-                    <i class="fas fa-layer-group"></i> Все
-                </button>
-                <button class="pill @(selectedType == "Apartment" ? "active" : "")" @onclick='() => FilterByType("Apartment")'>
-                    <i class="fas fa-building"></i> Квартиры
-                </button>
-                <button class="pill @(selectedType == "House" ? "active" : "")" @onclick='() => FilterByType("House")'>
-                    <i class="fas fa-home"></i> Дома
-                </button>
-                <button class="pill @(selectedType == "Land" ? "active" : "")" @onclick='() => FilterByType("Land")'>
-                    <i class="fas fa-tree"></i> Участки
-                </button>
-            </div>
+            <a href="/properties" class="view-all-link">
+                Все объекты <i class="fas fa-arrow-right"></i>
+            </a>
         </div>
 
         <div class="property-grid">
             @if (popularProperties == null)
             {
-                @for (int i = 0; i < 6; i++)
+                @for (int i = 0; i < 3; i++)
                 {
-                    <div class="skeleton-card">
-                        <div class="skeleton-img"></div>
-                        <div class="skeleton-text"></div>
-                        <div class="skeleton-text short"></div>
-                    </div>
+                    <div class="skeleton-card"></div>
                 }
             }
             else if (!popularProperties.Any())
             {
                 <div class="empty-state">
-                    <div class="empty-icon-box">
-                        <i class="fas fa-search"></i>
-                    </div>
                     <h3>Ничего не найдено</h3>
-                    <p>По вашему запросу нет доступных объектов. Попробуйте изменить параметры.</p>
                 </div>
             }
             else
             {
-                @foreach (var prop in popularProperties)
+                @foreach (var prop in popularProperties.Take(3))
                 {
-                    <div class="luxury-card">
+                    <div class="property-card animate-slide-up">
                         <div class="card-image-box">
                             @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
                             {
-                                <img src="@prop.PhotoUrls.First()" alt="@prop.PropertyTypeName" />
+                                <img src="@prop.PhotoUrls.First()" alt="@prop.Title" />
                             }
                             else
                             {
@@ -103,192 +162,709 @@
                                     <i class="fas fa-image"></i>
                                 </div>
                             }
-                            <div class="card-tag">@prop.PropertyTypeName</div>
-                            <div class="card-gradient-overlay"></div>
+                            <div class="price-badge">@prop.Price?.ToString("N0") ₽</div>
                         </div>
-                        <div class="card-body-luxury">
-                            <h3 class="card-address-title">@prop.Address</h3>
+                        <div class="card-body">
+                            <h3 class="card-title">@prop.Title</h3>
+                            <div class="card-location">
+                                <i class="fas fa-map-marker-alt"></i> 
+                                @prop.Address
+                            </div>
                             
                             <div class="card-specs">
                                 <div class="spec-item">
-                                    <div class="spec-icon"><i class="fas fa-bed"></i></div>
-                                    <span>@prop.Rooms комн.</span>
+                                    <i class="fas fa-bed"></i> 
+                                    <span>@prop.Rooms спальни</span>
                                 </div>
-                                <div class="spec-divider"></div>
                                 <div class="spec-item">
-                                    <div class="spec-icon"><i class="fas fa-ruler-combined"></i></div>
+                                    <i class="fas fa-bath"></i> 
+                                    <span>@prop.Bathrooms ванные</span>
+                                </div>
+                                <div class="spec-item">
+                                    <i class="fas fa-ruler-combined"></i> 
                                     <span>@prop.TotalArea м²</span>
                                 </div>
                             </div>
 
-                            <div class="card-footer">
-                                <div class="price-container">
-                                    <span class="price-label">Стоимость</span>
-                                    <div class="card-price-tag">@prop.Price?.ToString("N0") <span class="currency">₽</span></div>
-                                </div>
-                                <a href="/property/@prop.PropertyID" class="btn-view-circle">
-                                    <i class="fas fa-arrow-right"></i>
-                                </a>
-                            </div>
+                            <AuthorizeView Roles="Client">
+                                <Authorized>
+                                    <a href="/properties/@prop.PropertyID" class="btn-action">
+                                        Записаться на показ
+                                    </a>
+                                </Authorized>
+                                <NotAuthorized>
+                                    <button class="btn-action btn-action-disabled" disabled title="Требуется вход">
+                                        Записаться на показ
+                                    </button>
+                                </NotAuthorized>
+                            </AuthorizeView>
                         </div>
                     </div>
                 }
             }
         </div>
     </div>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-content">
+            <div class="footer-logo">
+                <i class="fas fa-home"></i>
+                <span>РеалтиПро</span>
+            </div>
+            <p>Ваш надежный партнер в мире недвижимости</p>
+            <div class="footer-links">
+                <a href="/about">О компании</a>
+                <a href="/contacts">Контакты</a>
+                <a href="/privacy">Политика</a>
+            </div>
+            <p class="footer-copyright">© 2024 РеалтиПро. Все права защищены.</p>
+        </div>
+    </footer>
 </div>
 
 <style>
     :root {
-        --gold: #f39c12;
-        --bg-dark: #0a0a0a;
-        --card-bg: rgba(25, 25, 25, 0.7);
-        --border-glass: rgba(255, 255, 255, 0.08);
+        --primary: #7c3aed;
+        --primary-light: #f3e8ff;
+        --primary-hover: #6d28d9;
+        --bg-light: #f8fafc;
+        --text-dark: #0f172a;
+        --text-muted: #64748b;
+        --card-bg: #ffffff;
+        --border-color: #e2e8f0;
+        --danger: #ef4444;
     }
 
-    /* ГЛОБАЛЬНЫЕ КОНТЕЙНЕРЫ */
-    .main-container { background: var(--bg-dark); min-height: 100vh; color: #fff; position: relative; overflow-x: hidden; font-family: 'Inter', sans-serif; }
-    .page-wrapper { max-width: 1400px; margin: 0 auto; padding: 80px 40px; position: relative; z-index: 2; }
+    * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+    }
 
-    /* ФОНОВЫЕ СВЕЧЕНИЯ */
-    .bg-orbs { position: absolute; inset: 0; pointer-events: none; z-index: 0; overflow: hidden; }
-    .orb { position: absolute; filter: blur(130px); border-radius: 50%; opacity: 0.15; animation: floatOrb 10s infinite alternate ease-in-out; }
-    .orb-1 { top: 10%; right: -5%; width: 500px; height: 500px; background: var(--gold); }
-    .orb-2 { bottom: 20%; left: -10%; width: 600px; height: 600px; background: #3498db; }
+    body { 
+        background-color: var(--bg-light); 
+        color: var(--text-dark); 
+        font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        line-height: 1.6;
+    }
 
-    @@keyframes floatOrb { 0% { transform: translate(0, 0) scale(1); } 100% { transform: translate(-30px, 50px) scale(1.1); } }
+    .main-container { 
+        background: var(--bg-light); 
+        min-height: 100vh;
+    }
 
-    /* HERO SECTION */
-    .hero-block {
-        height: 75vh;
-        min-height: 600px;
-        position: relative;
-        background: url('https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?q=80&w=2075&auto=format&fit=crop') center/cover no-repeat;
+    /* Header */
+    .main-header {
+        background: var(--card-bg);
+        border-bottom: 1px solid var(--border-color);
+        padding: 16px 0;
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .header-content {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 20px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .logo {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary);
+    }
+
+    .main-nav {
+        display: flex;
+        gap: 24px;
+    }
+
+    .nav-link {
+        color: var(--text-dark);
+        text-decoration: none;
+        font-weight: 500;
+        padding: 8px 4px;
+        border-bottom: 2px solid transparent;
+        transition: all 0.2s;
+    }
+
+    .nav-link:hover {
+        color: var(--primary);
+        border-bottom-color: var(--primary);
+    }
+
+    .user-menu {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .btn-profile {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 20px;
+        background: var(--primary-light);
+        color: var(--primary);
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s;
+    }
+
+    .btn-profile:hover {
+        background: var(--primary);
+        color: white;
+    }
+
+    .btn-logout {
+        width: 40px;
+        height: 40px;
+        border-radius: 10px;
+        border: 2px solid var(--border-color);
+        background: white;
+        color: var(--text-muted);
         display: flex;
         align-items: center;
         justify-content: center;
+        text-decoration: none;
+        transition: all 0.2s;
+    }
+
+    .btn-logout:hover {
+        border-color: var(--danger);
+        color: var(--danger);
+    }
+
+    .auth-buttons {
+        display: flex;
+        gap: 12px;
+    }
+
+    .btn-login {
+        padding: 10px 24px;
+        border: none;
+        background: transparent;
+        color: var(--text-dark);
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-login:hover {
+        background: var(--bg-light);
+    }
+
+    .btn-register {
+        padding: 10px 24px;
+        border: none;
+        background: var(--primary);
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        text-decoration: none;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-register:hover {
+        background: var(--primary-hover);
+        transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero-block {
+        padding: 80px 20px 60px;
+        background: radial-gradient(circle at center top, #ffffff 0%, var(--bg-light) 100%);
         text-align: center;
     }
 
-    .hero-overlay { position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(10,10,10,0.6) 0%, var(--bg-dark) 100%); }
-    .hero-content { position: relative; z-index: 5; max-width: 900px; padding: 0 20px; }
-
-    /* WELCOME BADGE */
-    .user-badge {
-        display: inline-flex; align-items: center; background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(10px);
-        border: 1px solid var(--border-glass); padding: 8px 20px; border-radius: 50px; margin-bottom: 30px;
-        font-size: 0.9rem; color: #ccc; box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+    .hero-content { 
+        max-width: 1000px; 
+        margin: 0 auto; 
     }
-    .status-dot { width: 8px; height: 8px; background: #4ade80; border-radius: 50%; margin-right: 12px; box-shadow: 0 0 10px #4ade80; }
-    .user-name { font-weight: 700; margin-left: 5px; color: #fff; }
 
-    .hero-title { font-size: 4.5rem; font-weight: 900; line-height: 1.1; margin-bottom: 20px; letter-spacing: -2px; }
-    .gold-gradient { background: linear-gradient(135deg, #fbc531, #e67e22); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero-subtitle { font-size: 1.25rem; color: #aaa; margin-bottom: 50px; font-weight: 300; }
-
-    /* SEARCH BAR PREMIUM */
-    .search-bar-premium {
-        background: rgba(20, 20, 20, 0.6); backdrop-filter: blur(25px);
-        padding: 12px; border-radius: 24px; display: flex; gap: 10px;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        box-shadow: 0 30px 60px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.1);
-        transition: 0.3s;
+    .user-greeting { 
+        margin-bottom: 20px; 
+        color: var(--text-muted); 
+        font-size: 0.95rem; 
     }
-    .search-bar-premium:focus-within { border-color: rgba(243, 156, 18, 0.5); box-shadow: 0 30px 60px rgba(0,0,0,0.6), 0 0 20px rgba(243, 156, 18, 0.2); }
+
+    .hero-title { 
+        font-size: 3.5rem; 
+        font-weight: 800; 
+        margin-bottom: 16px; 
+        color: var(--text-dark);
+        letter-spacing: -1px;
+        line-height: 1.2;
+    }
+
+    .gradient-text { 
+        background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        display: inline-block;
+    }
     
-    .search-input-wrapper { flex: 1; display: flex; align-items: center; padding: 0 25px; gap: 15px; }
-    .search-input-wrapper i { color: var(--gold); font-size: 1.2rem; }
-    .search-input-wrapper input { background: transparent; border: none; color: #fff; width: 100%; font-size: 1.1rem; outline: none; font-family: inherit; }
-    .search-input-wrapper input::placeholder { color: #666; }
+    .hero-subtitle { 
+        font-size: 1.125rem; 
+        color: var(--text-muted); 
+        margin-bottom: 48px; 
+        line-height: 1.6; 
+    }
+
+    /* Search Bar */
+    .search-bar {
+        background: var(--card-bg);
+        border: 1px solid var(--border-color);
+        padding: 8px;
+        border-radius: 100px;
+        display: flex;
+        align-items: center;
+        max-width: 700px;
+        margin: 0 auto 60px;
+        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        transition: all 0.3s;
+    }
+
+    .search-bar:focus-within { 
+        border-color: var(--primary); 
+        box-shadow: 0 10px 40px rgba(124, 58, 237, 0.15); 
+    }
+    
+    .search-input-wrapper { 
+        flex: 1; 
+        display: flex; 
+        align-items: center; 
+        gap: 12px;
+        padding-left: 20px;
+    }
+
+    .search-icon { 
+        color: var(--text-muted);
+        font-size: 1.1rem;
+    }
+
+    .search-input-wrapper input { 
+        border: none; 
+        outline: none; 
+        width: 100%; 
+        font-size: 1rem; 
+        color: var(--text-dark); 
+        background: transparent;
+        padding: 12px 0;
+    }
+
+    .search-input-wrapper input::placeholder { 
+        color: #94a3b8; 
+    }
     
     .search-btn {
-        background: var(--gold); color: #000; border: none; padding: 15px 40px; border-radius: 16px;
-        font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.3s; display: flex; align-items: center; gap: 10px;
-    }
-    .search-btn:hover { background: #fff; transform: translateY(-2px); box-shadow: 0 10px 20px rgba(243,156,18,0.3); }
-
-    /* FILTERS & HEADERS */
-    .section-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 50px; }
-    .section-title { font-size: 2.5rem; font-weight: 800; margin: 0; letter-spacing: -1px; }
-    .gold-dot { color: var(--gold); }
-    .section-line { width: 60px; height: 4px; background: var(--gold); margin-top: 15px; border-radius: 4px; }
-    
-    .filter-pills { display: flex; gap: 12px; }
-    .pill {
-        padding: 12px 24px; border-radius: 50px; background: rgba(255,255,255,0.03); color: #888;
-        cursor: pointer; transition: 0.3s; font-weight: 600; border: 1px solid var(--border-glass);
-        display: flex; align-items: center; gap: 8px; font-size: 0.95rem; font-family: inherit;
-    }
-    .pill i { font-size: 1rem; transition: 0.3s; }
-    .pill.active { background: var(--gold); color: #000; border-color: var(--gold); box-shadow: 0 10px 20px rgba(243, 156, 18, 0.2); }
-    .pill:hover:not(.active) { background: rgba(255,255,255,0.08); color: #fff; }
-
-    /* PROPERTY CARDS */
-    .property-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); gap: 35px; }
-    
-    .luxury-card {
-        background: var(--card-bg); backdrop-filter: blur(20px); border-radius: 32px; overflow: hidden;
-        transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); border: 1px solid var(--border-glass);
-        box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-    }
-    .luxury-card:hover { transform: translateY(-10px); border-color: rgba(243, 156, 18, 0.4); box-shadow: 0 40px 80px rgba(0,0,0,0.7); }
-
-    .card-image-box { height: 280px; position: relative; overflow: hidden; }
-    .card-image-box img { width: 100%; height: 100%; object-fit: cover; transition: 0.7s ease; }
-    .luxury-card:hover .card-image-box img { transform: scale(1.08); }
-    .card-gradient-overlay { position: absolute; inset: 0; background: linear-gradient(to top, var(--card-bg) 0%, transparent 40%); pointer-events: none; }
-    
-    .card-tag {
-        position: absolute; top: 20px; left: 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px);
-        color: #fff; padding: 8px 16px; border-radius: 12px; font-size: 0.8rem; font-weight: 700;
-        border: 1px solid rgba(255,255,255,0.1); text-transform: uppercase; letter-spacing: 1px; z-index: 2;
+        background: var(--primary); 
+        color: #fff; 
+        border: none; 
+        padding: 14px 32px;
+        border-radius: 100px; 
+        font-weight: 600; 
+        font-size: 1rem;
+        cursor: pointer; 
+        transition: all 0.3s;
     }
 
-    .card-body-luxury { padding: 30px; position: relative; z-index: 2; }
-    .card-address-title { font-size: 1.4rem; font-weight: 800; margin-bottom: 20px; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-    
-    .card-specs { display: flex; align-items: center; gap: 15px; margin-bottom: 30px; color: #ccc; background: rgba(255,255,255,0.03); padding: 12px 20px; border-radius: 16px; border: 1px solid rgba(255,255,255,0.05); }
-    .spec-item { display: flex; align-items: center; gap: 10px; font-size: 1rem; font-weight: 600; }
-    .spec-icon { color: var(--gold); display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; }
-    .spec-divider { width: 1px; height: 20px; background: rgba(255,255,255,0.1); }
-
-    .card-footer { display: flex; justify-content: space-between; align-items: center; }
-    .price-label { font-size: 0.8rem; color: #888; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; display: block; }
-    .card-price-tag { font-size: 1.8rem; font-weight: 900; color: #fff; }
-    .currency { font-size: 1.2rem; color: var(--gold); margin-left: 4px; }
-
-    .btn-view-circle {
-        width: 60px; height: 60px; border-radius: 50%; background: rgba(255,255,255,0.05); color: #fff; border: 1px solid var(--border-glass);
-        display: flex; align-items: center; justify-content: center; transition: 0.4s; text-decoration: none; font-size: 1.2rem;
+    .search-btn:hover { 
+        background: var(--primary-hover); 
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
     }
-    .luxury-card:hover .btn-view-circle { background: var(--gold); color: #000; border-color: var(--gold); transform: scale(1.1) rotate(-45deg); box-shadow: 0 10px 20px rgba(243,156,18,0.3); }
 
-    /* SKELETON & EMPTY STATE */
-    .skeleton-card { height: 500px; background: var(--card-bg); border-radius: 32px; border: 1px solid var(--border-glass); animation: pulse 1.5s infinite; }
-    @@keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 0.2; } 100% { opacity: 0.5; } }
+    /* Stats Grid */
+    .stats-grid {
+        display: grid; 
+        grid-template-columns: repeat(4, 1fr); 
+        gap: 24px;
+        margin-top: 40px;
+    }
+
+    .stat-item {
+        background: var(--card-bg); 
+        padding: 28px; 
+        border-radius: 20px;
+        border: 1px solid var(--border-color); 
+        display: flex; 
+        align-items: flex-start; 
+        gap: 16px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02); 
+        text-align: left;
+        transition: all 0.3s;
+        opacity: 0;
+        transform: translateY(30px);
+        animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .stat-item:nth-child(1) { animation-delay: 0.3s; }
+    .stat-item:nth-child(2) { animation-delay: 0.4s; }
+    .stat-item:nth-child(3) { animation-delay: 0.5s; }
+    .stat-item:nth-child(4) { animation-delay: 0.6s; }
+
+    .stat-item:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.06);
+    }
+
+    .stat-icon {
+        background: var(--primary-light); 
+        color: var(--primary); 
+        width: 52px; 
+        height: 52px;
+        border-radius: 14px; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.4rem; 
+        flex-shrink: 0;
+    }
+
+    .stat-info h3 { 
+        font-size: 1.125rem; 
+        font-weight: 700; 
+        margin: 0 0 6px; 
+        color: var(--text-dark); 
+    }
+
+    .stat-info p { 
+        margin: 0; 
+        font-size: 0.875rem; 
+        color: var(--text-muted); 
+        line-height: 1.5; 
+    }
+
+    /* Page Wrapper */
+    .page-wrapper { 
+        max-width: 1200px; 
+        margin: 0 auto; 
+        padding: 40px 20px 80px; 
+    }
+
+    /* Section Header */
+    .section-header { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: flex-end; 
+        margin-bottom: 40px; 
+    }
+
+    .section-title { 
+        font-size: 2rem; 
+        font-weight: 800; 
+        margin: 0 0 8px; 
+        color: var(--text-dark); 
+    }
+
+    .section-subtitle { 
+        color: var(--text-muted); 
+        margin: 0;
+        font-size: 0.95rem;
+    }
+
+    .view-all-link { 
+        color: var(--primary); 
+        text-decoration: none; 
+        font-weight: 600; 
+        display: flex; 
+        align-items: center; 
+        gap: 6px; 
+        transition: all 0.2s; 
+    }
+
+    .view-all-link:hover { 
+        color: var(--primary-hover);
+        gap: 10px;
+    }
+
+    /* Property Grid */
+    .property-grid { 
+        display: grid; 
+        grid-template-columns: repeat(3, 1fr); 
+        gap: 32px; 
+    }
     
-    .empty-state { grid-column: 1/-1; text-align: center; padding: 100px 20px; background: var(--card-bg); border-radius: 32px; border: 1px dashed rgba(255,255,255,0.1); }
-    .empty-icon-box { width: 80px; height: 80px; background: rgba(255,255,255,0.05); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 2rem; color: var(--gold); }
-    .empty-state h3 { font-size: 1.8rem; font-weight: 700; margin-bottom: 10px; }
-    .empty-state p { color: #888; font-size: 1.1rem; }
+    .property-card {
+        background: var(--card-bg); 
+        border-radius: 24px; 
+        overflow: hidden;
+        border: 1px solid var(--border-color); 
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity: 0;
+        transform: translateY(40px);
+        animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
 
-    /* ANIMATIONS */
-    .fade-in { animation: fadeIn 0.8s cubic-bezier(0.165, 0.84, 0.44, 1); }
-    .fade-in-delay { animation: fadeIn 0.8s cubic-bezier(0.165, 0.84, 0.44, 1) 0.2s backwards; }
-    @@keyframes fadeIn { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .property-card:nth-child(1) { animation-delay: 0.7s; }
+    .property-card:nth-child(2) { animation-delay: 0.8s; }
+    .property-card:nth-child(3) { animation-delay: 0.9s; }
 
-    @@media (max-width: 900px) {
-        .hero-title { font-size: 3rem; }
-        .section-header { flex-direction: column; align-items: flex-start; gap: 30px; }
-        .filter-pills { flex-wrap: wrap; }
-        .search-bar-premium { flex-direction: column; padding: 20px; border-radius: 20px; }
-        .search-input-wrapper { padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; }
+    .property-card:hover { 
+        transform: translateY(-8px); 
+        box-shadow: 0 20px 40px rgba(124, 58, 237, 0.1); 
+        border-color: rgba(124, 58, 237, 0.3);
+    }
+
+    .card-image-box { 
+        height: 260px; 
+        position: relative; 
+        overflow: hidden;
+        padding: 16px;
+        padding-bottom: 0;
+    }
+
+    .card-image-box img { 
+        width: 100%; 
+        height: 100%; 
+        object-fit: cover; 
+        border-radius: 16px 16px 0 0;
+        transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .property-card:hover .card-image-box img {
+        transform: scale(1.05);
+    }
+    
+    .price-badge {
+        position: absolute; 
+        top: 28px; 
+        right: 28px; 
+        background: var(--primary); 
+        color: #fff;
+        padding: 8px 16px; 
+        border-radius: 12px; 
+        font-size: 0.875rem; 
+        font-weight: 700;
+        box-shadow: 0 4px 12px rgba(124, 58, 237, 0.3);
+    }
+
+    .card-body { 
+        padding: 24px; 
+    }
+
+    .card-title { 
+        font-size: 1.25rem; 
+        font-weight: 700; 
+        margin: 0 0 10px; 
+        color: var(--text-dark);
+    }
+
+    .card-location { 
+        color: var(--text-muted); 
+        font-size: 0.9rem; 
+        margin-bottom: 20px; 
+        display: flex; 
+        align-items: center; 
+        gap: 6px; 
+    }
+    
+    .card-specs { 
+        display: flex; 
+        justify-content: space-between; 
+        border-top: 1px solid var(--border-color); 
+        padding-top: 20px; 
+        margin-bottom: 20px; 
+    }
+
+    .spec-item { 
+        display: flex; 
+        align-items: center; 
+        gap: 8px; 
+        color: var(--text-muted); 
+        font-size: 0.875rem; 
+    }
+
+    .spec-item i { 
+        color: var(--primary); 
+        font-size: 0.9rem;
+    }
+
+    .btn-action {
+        display: block; 
+        width: 100%; 
+        text-align: center; 
+        background: var(--primary-light);
+        color: var(--primary); 
+        font-weight: 600; 
+        padding: 14px; 
+        border-radius: 12px;
+        text-decoration: none; 
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        border: 2px solid transparent;
+        cursor: pointer;
+    }
+
+    .btn-action:hover:not(:disabled) { 
+        background: var(--primary); 
+        color: #fff;
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(124, 58, 237, 0.25);
+    }
+    
+    .btn-action-disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+    
+    .btn-action-disabled:hover {
+        transform: none;
+        box-shadow: none;
+    }
+
+    /* Footer */
+    .main-footer {
+        background: var(--primary);
+        color: white;
+        padding: 60px 20px 40px;
+        text-align: center;
+    }
+
+    .footer-content {
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .footer-logo {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 12px;
+    }
+
+    .footer-content > p {
+        opacity: 0.9;
+        margin-bottom: 24px;
+    }
+
+    .footer-links {
+        display: flex;
+        justify-content: center;
+        gap: 32px;
+        margin-bottom: 24px;
+    }
+
+    .footer-links a {
+        color: white;
+        text-decoration: none;
+        opacity: 0.9;
+        transition: opacity 0.2s;
+    }
+
+    .footer-links a:hover {
+        opacity: 1;
+    }
+    
+    .footer-copyright {
+        opacity: 0.7;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Skeleton Loading */
+    .skeleton-card { 
+        height: 480px; 
+        background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+        background-size: 200% 100%;
+        border-radius: 24px; 
+        animation: shimmer 1.5s infinite; 
+    }
+
+    @@keyframes shimmer {
+        0% { background-position: 200% 0; }
+        100% { background-position: -200% 0; }
+    }
+
+    /* Animations */
+    .animate-slide-up {
+        opacity: 0;
+        transform: translateY(40px);
+        animation: slideUpFade 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .delay-100 { animation-delay: 0.1s; }
+    .delay-200 { animation-delay: 0.2s; }
+    .delay-300 { animation-delay: 0.3s; }
+    .delay-400 { animation-delay: 0.4s; }
+    .delay-500 { animation-delay: 0.5s; }
+    .delay-600 { animation-delay: 0.6s; }
+
+    @@keyframes slideUpFade {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive */
+    @@media (max-width: 1024px) {
+        .stats-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .property-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .hero-title {
+            font-size: 2.5rem;
+        }
+    }
+
+    @@media (max-width: 768px) {
+        .header-content {
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        
+        .main-nav {
+            order: 3;
+            width: 100%;
+            justify-content: center;
+            padding-top: 16px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .property-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .hero-title {
+            font-size: 2rem;
+        }
+        
+        .section-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 16px;
+        }
     }
 </style>
 
 @code {
     string searchQuery = "";
-    string? selectedType = null;
     List<PropertyDto>? allProperties;
     List<PropertyDto>? popularProperties;
 
@@ -297,7 +873,7 @@
         try
         {
             allProperties = await ApiClient.GetPropertiesAsync();
-            ApplyFilter();
+            popularProperties = allProperties?.Take(3).ToList() ?? new(); 
         }
         catch
         {
@@ -306,40 +882,9 @@
         }
     }
 
-    private void FilterByType(string? type)
-    {
-        selectedType = type;
-        ApplyFilter();
-    }
-
-    private void ApplyFilter()
-    {
-        if (allProperties == null)
-        {
-            popularProperties = new();
-            return;
-        }
-
-        if (string.IsNullOrEmpty(selectedType))
-        {
-            popularProperties = allProperties.Take(6).ToList();
-        }
-        else
-        {
-            popularProperties = selectedType switch
-            {
-                "Apartment" => allProperties.Where(p => p.PropertyTypeName == "Квартира").Take(6).ToList(),
-                "House" => allProperties.Where(p => p.PropertyTypeName is "Дом" or "Таунхаус").Take(6).ToList(),
-                "Land" => allProperties.Where(p => p.PropertyTypeName == "Участок").Take(6).ToList(),
-                _ => allProperties.Take(6).ToList()
-            };
-        }
-    }
-
     private void OnKeyDown(KeyboardEventArgs e)
     {
-        if (e.Key == "Enter")
-            Search();
+        if (e.Key == "Enter") Search();
     }
 
     private void Search()

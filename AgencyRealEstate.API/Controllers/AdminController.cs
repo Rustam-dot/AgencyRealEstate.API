@@ -25,16 +25,21 @@ public class AdminController : ControllerBase
     [HttpGet("users")]
     public async Task<IActionResult> GetUsers()
     {
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
         var users = await _context.Users
             .Include(u => u.Role)
-            .Select(u => new
+            .Select(u => new UserDto
             {
-                u.UserId,
-                u.Login,
-                u.Email,
-                u.IsActive,
-                u.CreatedAt,
-                Role = u.Role.RoleName
+                UserId = u.UserId,
+                Login = u.Login,
+                Email = u.Email,
+                AvatarUrl = !string.IsNullOrEmpty(u.AvatarUrl)
+                    ? (u.AvatarUrl.StartsWith("/") ? $"{baseUrl}{u.AvatarUrl}" : u.AvatarUrl)
+                    : null,
+                Role = u.Role.RoleName,
+                IsActive = u.IsActive,
+                CreatedAt = u.CreatedAt
             })
             .ToListAsync();
 

@@ -14,6 +14,8 @@ public class PropertyDto
     public decimal? Price { get; set; }
     public string Description { get; set; }
     public string StatusName { get; set; }
+    public string? Title { get; set; }
+    public int? Bathrooms { get; set; }
     public double? Latitude { get; set; }
     public double? Longitude { get; set; }
     public List<string> PhotoUrls { get; set; }

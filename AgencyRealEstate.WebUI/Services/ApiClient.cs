@@ -1,5 +1,7 @@
-﻿using System.Net.Http.Json;
-using AgencyRealEstate.WebUI.Models; 
+﻿using AgencyRealEstate.WebUI.Models;
+using Microsoft.AspNetCore.Components.Forms;
+using System.Net.Http.Headers;
+using System.Net.Http.Json;
 
 namespace AgencyRealEstate.WebUI.Services;
 
@@ -10,6 +12,23 @@ public class ApiClient
     public ApiClient(HttpClient http)
     {
         _http = http;
+    }
+
+    public async Task<string> UploadAvatarAsync(IBrowserFile file)
+    {
+        using var content = new MultipartFormDataContent();
+        var fileContent = new StreamContent(file.OpenReadStream(maxAllowedSize: 5_000_000));
+        fileContent.Headers.ContentType = new MediaTypeHeaderValue(file.ContentType);
+        content.Add(fileContent, "file", file.Name);
+        var response = await _http.PostAsync("profile/avatar", content);
+        response.EnsureSuccessStatusCode();
+        var result = await response.Content.ReadFromJsonAsync<AvatarResponse>();
+        return result?.AvatarUrl ?? "";
+    }
+
+    public class AvatarResponse
+    {
+        public string AvatarUrl { get; set; } = "";
     }
 
 

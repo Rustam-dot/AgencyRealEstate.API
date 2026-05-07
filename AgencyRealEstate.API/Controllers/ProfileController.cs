@@ -10,49 +10,54 @@ namespace AgencyRealEstate.API.Controllers;
 
 [ApiController]
 [Route("api/profile")]
-[Authorize(Roles = "Client")] // Только клиенты могут редактировать свой профиль
+[Authorize]
 public class ProfileController : ControllerBase
 {
     private readonly AppDbContext _context;
+    private readonly IWebHostEnvironment _env;
 
-    public ProfileController(AppDbContext context)
+    public ProfileController(AppDbContext context, IWebHostEnvironment env)
     {
         _context = context;
+        _env = env;
     }
 
-    // GET api/profile – получить данные текущего пользователя
-    [HttpGet]
+    // GET api/profile
     [HttpGet]
     public async Task<IActionResult> GetProfile()
     {
         int userId = GetCurrentUserId();
-
         var user = await _context.Users.FindAsync(userId);
-        if (user == null)
-            return NotFound("Пользователь не найден");
+        if (user == null) return NotFound();
 
-        // Вместо Include(u => u.Client) делаем отдельный запрос к Clients
+        // Для клиентов пытаемся найти запись в Clients
         var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
 
         return Ok(new
         {
             Login = user.Login,
             Email = user.Email,
-            FullName = client?.FullName ?? "",
+            FullName = client?.FullName ?? user.Login,
             Phone = client?.Phone ?? "",
-            PassportData = client?.PassportData ?? "",
-            Preferences = client?.Preferences ?? ""
+            PassportData = client?.PassportData,
+            Preferences = client?.Preferences,
+            Position = user.Position,
+            Bio = user.Bio,
+            AvatarUrl = string.IsNullOrEmpty(user.AvatarUrl)
+    ? null
+    : (user.AvatarUrl.StartsWith("/")
+        ? $"{Request.Scheme}://{Request.Host}{user.AvatarUrl}"
+        : user.AvatarUrl)
         });
     }
 
-    // PUT api/profile – обновить профиль
+    // PUT api/profile
     [HttpPut]
     public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileRequest request)
     {
         int userId = GetCurrentUserId();
-
         var user = await _context.Users.FindAsync(userId);
-        if (user == null) return NotFound("Пользователь не найден");
+        if (user == null) return NotFound();
 
         // Обновляем логин, если передан и не занят
         if (!string.IsNullOrWhiteSpace(request.Login) && request.Login != user.Login)
@@ -62,11 +67,9 @@ public class ProfileController : ControllerBase
             user.Login = request.Login;
         }
 
-        // Обновляем email
         if (!string.IsNullOrWhiteSpace(request.Email))
             user.Email = request.Email;
 
-        // Обновляем пароль
         if (!string.IsNullOrWhiteSpace(request.NewPassword))
         {
             var (hash, salt) = PasswordService.CreatePasswordHash(request.NewPassword);
@@ -74,31 +77,76 @@ public class ProfileController : ControllerBase
             user.PasswordSalt = salt;
         }
 
-        // Обновляем данные клиента
-        var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
-        if (client == null)
-        {
-            // Если записи клиента ещё нет – создаём
-            client = new Client
-            {
-                UserId = userId,
-                CreatedByUserId = userId
-            };
-            _context.Clients.Add(client);
-        }
+        // Дополнительные поля – применяются ко всем ролям
+        if (request.Position != null) user.Position = request.Position;
+        if (request.Bio != null) user.Bio = request.Bio;
 
-        if (!string.IsNullOrWhiteSpace(request.FullName))
-            client.FullName = request.FullName;
-        if (!string.IsNullOrWhiteSpace(request.Phone))
-            client.Phone = request.Phone;
-        
-        client.PassportData = request.PassportData;
-        client.Preferences = request.Preferences;
+        // Обновление клиента (если есть запись в Clients)
+        var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
+        if (client != null)
+        {
+            if (request.FullName != null) client.FullName = request.FullName;
+            if (request.Phone != null) client.Phone = request.Phone;
+            if (request.PassportData != null) client.PassportData = request.PassportData;
+            if (request.Preferences != null) client.Preferences = request.Preferences;
+            // Для клиентов также сохраняем должность/описание в Users (уже сделали выше)
+        }
+        else
+        {
+            // Если записи клиента ещё нет – создаём для роли Client
+            // Для сотрудников таблица Clients не обязательна, поэтому создаём только при необходимости.
+            // Чтобы не создавать пустого клиента для риелтора, проверим роль.
+            var role = await _context.UserRoles.FindAsync(user.RoleId);
+            if (role != null && role.RoleName == "Client")
+            {
+                client = new Client
+                {
+                    UserId = userId,
+                    FullName = request.FullName ?? user.Login,
+                    Phone = request.Phone ?? "",
+                    PassportData = request.PassportData,
+                    Preferences = request.Preferences,
+                    CreatedByUserId = userId
+                };
+                _context.Clients.Add(client);
+            }
+        }
 
         user.UpdatedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
-
         return Ok(new { message = "Профиль обновлён" });
+    }
+
+    // POST api/profile/avatar – загрузка аватара
+    [HttpPost("avatar")]
+    public async Task<IActionResult> UploadAvatar(IFormFile file)
+    {
+        if (file == null || file.Length == 0)
+            return BadRequest("Файл не выбран");
+
+        int userId = GetCurrentUserId();
+        var uploadsFolder = Path.Combine(_env.WebRootPath, "avatars");
+        if (!Directory.Exists(uploadsFolder))
+            Directory.CreateDirectory(uploadsFolder);
+
+        var fileName = $"{userId}_{Guid.NewGuid()}_{Path.GetFileName(file.FileName)}";
+        var filePath = Path.Combine(uploadsFolder, fileName);
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
+        {
+            await file.CopyToAsync(stream);
+        }
+
+        var user = await _context.Users.FindAsync(userId);
+        if (user == null) return NotFound();
+
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+        var avatarUrl = $"{baseUrl}/avatars/{fileName}";
+
+        user.AvatarUrl = avatarUrl;
+        await _context.SaveChangesAsync();
+
+        return Ok(new { avatarUrl });
     }
 
     private int GetCurrentUserId()
@@ -107,15 +155,17 @@ public class ProfileController : ControllerBase
         if (userIdClaim == null) throw new UnauthorizedAccessException();
         return int.Parse(userIdClaim);
     }
+}
 
-    public class UpdateProfileRequest
-    {
-        public string? Login { get; set; }
-        public string? Email { get; set; }
-        public string? NewPassword { get; set; }
-        public string? FullName { get; set; }
-        public string? Phone { get; set; }
-        public string? PassportData { get; set; }
-        public string? Preferences { get; set; }
-    }
+public class UpdateProfileRequest
+{
+    public string? Login { get; set; }
+    public string? Email { get; set; }
+    public string? NewPassword { get; set; }
+    public string? FullName { get; set; }
+    public string? Phone { get; set; }
+    public string? PassportData { get; set; }
+    public string? Preferences { get; set; }
+    public string? Position { get; set; }
+    public string? Bio { get; set; }
 }

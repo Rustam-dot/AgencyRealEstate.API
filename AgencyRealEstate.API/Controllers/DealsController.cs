@@ -60,6 +60,8 @@ public class DealsController : ControllerBase
         var client = await _context.Clients.FirstOrDefaultAsync(c => c.UserId == userId);
         if (client == null) return BadRequest("Клиент не найден");
 
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
         var deals = await _context.Deals
             .Include(d => d.Property)
             .Include(d => d.Realtor)
@@ -71,8 +73,9 @@ public class DealsController : ControllerBase
                 d.DealId,
                 d.DealDate,
                 d.Amount,
+                PropertyTitle = d.Property.Title,
                 PropertyAddress = d.Property.Address,
-                PropertyStatus = d.Property.PropertyStatus.StatusName, // добавим статус объекта
+                PropertyStatus = d.Property.PropertyStatus.StatusName,
                 RealtorName = d.Realtor != null ? d.Realtor.FullName : "—",
                 StatusName = d.DealStatus.StatusName,
                 CanCancel = d.DealStatusId == (byte)DealStatus.InProgress
@@ -83,7 +86,31 @@ public class DealsController : ControllerBase
         return Ok(deals);
     }
 
-    // Сделки риелтора
+   
+    [HttpPut("{id}/accept")]
+    [Authorize(Roles = "Client")]
+    public async Task<IActionResult> AcceptDeal(int id)
+    {
+        var deal = await _context.Deals.Include(d => d.Property).FirstOrDefaultAsync(d => d.DealId == id);
+        if (deal == null) return NotFound();
+
+        if (deal.DealStatusId != (byte)DealStatus.AwaitingApproval)
+            return BadRequest("Нельзя принять сделку сейчас");
+
+        deal.DealStatusId = (byte)DealStatus.Completed;
+
+        var soldStatusId = await _context.PropertyStatuses
+            .Where(s => s.StatusName == "Sold").Select(s => s.PropertyStatusId).FirstOrDefaultAsync();
+        var rentedStatusId = await _context.PropertyStatuses
+            .Where(s => s.StatusName == "Rented").Select(s => s.PropertyStatusId).FirstOrDefaultAsync();
+        deal.Property.PropertyStatusId = (deal.DealTypeId == 1 && soldStatusId != 0) ? soldStatusId : rentedStatusId;
+
+        await _context.SaveChangesAsync();
+        return Ok(new { message = "Сделка принята" });
+    }
+
+
+    // Сделки риелтора — ОБНОВЛЕНО С АВТАРАМИ И НАЗВАНИЯМИ
     [HttpGet("assigned")]
     [Authorize(Roles = "Administrator,Manager,Realtor")]
     public async Task<IActionResult> GetAssignedDeals()
@@ -92,9 +119,12 @@ public class DealsController : ControllerBase
         var employee = await _context.Employees.FirstOrDefaultAsync(e => e.UserId == userId);
         if (employee == null) return BadRequest("Сотрудник не найден");
 
+        var baseUrl = $"{Request.Scheme}://{Request.Host}";
+
         var deals = await _context.Deals
             .Include(d => d.Property)
             .Include(d => d.Buyer)
+                .ThenInclude(b => b.User)  // 👈 Для получения аватара
             .Include(d => d.DealStatus)
             .Include(d => d.DealType)
             .Where(d => d.RealtorId == employee.EmployeeId)
@@ -103,8 +133,14 @@ public class DealsController : ControllerBase
                 d.DealId,
                 d.DealDate,
                 d.Amount,
+                PropertyTitle = d.Property.Title,  // 👈 Название объекта
                 PropertyAddress = d.Property.Address,
                 BuyerName = d.Buyer.FullName,
+                BuyerAvatarUrl = d.Buyer.User != null && !string.IsNullOrEmpty(d.Buyer.User.AvatarUrl)
+                    ? (d.Buyer.User.AvatarUrl.StartsWith("/")
+                        ? $"{baseUrl}{d.Buyer.User.AvatarUrl}"
+                        : d.Buyer.User.AvatarUrl)
+                    : null,  // 👈 Аватар покупателя с абсолютным URL
                 StatusName = d.DealStatus.StatusName,
                 DealTypeName = d.DealType.Name,
                 CanComplete = d.DealStatusId == (byte)DealStatus.InProgress || d.DealStatusId == (byte)DealStatus.DocumentPending
@@ -115,30 +151,30 @@ public class DealsController : ControllerBase
         return Ok(deals);
     }
 
-    // Редактирование сделки риелтором
+
     [HttpPut("{id}")]
     [Authorize(Roles = "Administrator,Manager,Realtor")]
     public async Task<IActionResult> UpdateDeal(int id, [FromBody] UpdateDealRequest request)
     {
         var deal = await _context.Deals.FindAsync(id);
         if (deal == null) return NotFound("Сделка не найдена");
-        if (deal.DealStatusId != (byte)DealStatus.InProgress)
-            return BadRequest("Редактирование возможно только для активной сделки");
+        if (deal.DealStatusId == (byte)DealStatus.Completed || deal.DealStatusId == (byte)DealStatus.Cancelled)
+            return BadRequest("Нельзя редактировать завершённую или отменённую сделку");
 
         if (request.DealTypeId.HasValue) deal.DealTypeId = request.DealTypeId.Value;
         if (request.Amount.HasValue) deal.Amount = request.Amount.Value;
-       
+
+    
+        deal.DealStatusId = (byte)DealStatus.AwaitingApproval;
 
         await _context.SaveChangesAsync();
-        return Ok(new { message = "Сделка обновлена" });
+        return Ok(new { message = "Сделка обновлена и отправлена клиенту" });
     }
 
-   
     [HttpPut("{id}/complete")]
     [Authorize(Roles = "Administrator,Manager,Realtor")]
     public async Task<IActionResult> CompleteDeal(int id)
     {
-        
         var deal = await _context.Deals
             .Include(d => d.Property)
             .FirstOrDefaultAsync(d => d.DealId == id);
@@ -147,10 +183,8 @@ public class DealsController : ControllerBase
         if (deal.DealStatusId == (byte)DealStatus.Completed)
             return BadRequest("Сделка уже завершена");
 
-        
         deal.DealStatusId = (byte)DealStatus.Completed;
 
-       
         var soldStatusId = await _context.PropertyStatuses
             .Where(s => s.StatusName == "Sold")
             .Select(s => s.PropertyStatusId)
@@ -161,14 +195,13 @@ public class DealsController : ControllerBase
             .Select(s => s.PropertyStatusId)
             .FirstOrDefaultAsync();
 
-      
         deal.Property.PropertyStatusId = (deal.DealTypeId == 1 && soldStatusId != 0) ? soldStatusId : rentedStatusId;
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Сделка завершена", newStatus = deal.Property.PropertyStatusId });
     }
 
-    // Отклонить сделку (риелтор) с возвратом объекта в Available
+   
     [HttpPut("{id}/reject")]
     [Authorize(Roles = "Administrator,Manager,Realtor")]
     public async Task<IActionResult> RejectDeal(int id)
@@ -180,34 +213,32 @@ public class DealsController : ControllerBase
 
         deal.DealStatusId = (byte)DealStatus.Cancelled;
 
-        // Возвращаем объект в доступные
         var availableId = await _context.PropertyStatuses
-    .Where(s => s.StatusName == "Available")
-    .Select(s => s.PropertyStatusId)
-    .FirstOrDefaultAsync(); 
+            .Where(s => s.StatusName == "Available")
+            .Select(s => s.PropertyStatusId)
+            .FirstOrDefaultAsync();
+
         deal.Property.PropertyStatusId = availableId;
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Сделка отклонена" });
     }
 
-    // Отменить сделку (клиент)
+   
     [HttpPut("{id}/cancel")]
     public async Task<IActionResult> CancelDeal(int id)
     {
-        var deal = await _context.Deals
-            .Include(d => d.Property)
-            .FirstOrDefaultAsync(d => d.DealId == id);
-        if (deal == null) return NotFound("Сделка не найдена");
+        var deal = await _context.Deals.Include(d => d.Property).FirstOrDefaultAsync(d => d.DealId == id);
+        if (deal == null) return NotFound();
+
+        if (deal.DealStatusId == (byte)DealStatus.Completed)
+            return BadRequest("Завершённую сделку отменить нельзя");
 
         deal.DealStatusId = (byte)DealStatus.Cancelled;
 
-        // Возвращаем объект в Available при отмене клиентом
-        var availableId = await _context.PropertyStatuses
-    .Where(s => s.StatusName == "Available")
-    .Select(s => s.PropertyStatusId)
-    .FirstOrDefaultAsync();
-        deal.Property.PropertyStatusId = availableId;
+        var availableStatusId = await _context.PropertyStatuses
+            .Where(s => s.StatusName == "Available").Select(s => s.PropertyStatusId).FirstOrDefaultAsync();
+        deal.Property.PropertyStatusId = availableStatusId;
 
         await _context.SaveChangesAsync();
         return Ok(new { message = "Сделка отменена" });
@@ -221,7 +252,6 @@ public class DealsController : ControllerBase
     }
 }
 
-// Существующие DTO и enum оставлены без изменений
 public class CreateDealRequest
 {
     public int ShowingId { get; set; }
@@ -233,7 +263,7 @@ public class UpdateDealRequest
 {
     public int? DealTypeId { get; set; }
     public decimal? Amount { get; set; }
-    public string? Comments { get; set; }  
+    public string? Comments { get; set; }
 }
 
 public enum DealStatus
@@ -241,5 +271,6 @@ public enum DealStatus
     InProgress = 1,
     Completed = 2,
     Cancelled = 3,
-    DocumentPending = 4
+    DocumentPending = 4,
+    AwaitingApproval = 5
 }
