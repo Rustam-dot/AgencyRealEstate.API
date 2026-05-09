@@ -13,7 +13,7 @@ public partial class Showing
 
     public int ClientId { get; set; }
 
-    public int RealtorId { get; set; }
+    public int? RealtorId { get; set; }
 
     public DateTime ShowingDateTime { get; set; }
 

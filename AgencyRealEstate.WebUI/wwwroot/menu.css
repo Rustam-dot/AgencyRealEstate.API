@@ -4,8 +4,7 @@
     --item-width: calc(var(--menu-width) / var(--items));
 }
 .main-content {
-    margin-top: 120px;
-    padding: 20px;
+    padding-top: 90px;
 }
 body {
     margin: 0;

@@ -18,6 +18,8 @@ public partial class Property
     public decimal? LivingArea { get; set; }
 
     public int? Floor { get; set; }
+    public string? Title { get; set; }
+    public int? Bathrooms { get; set; }
 
     public int? TotalFloors { get; set; }
 

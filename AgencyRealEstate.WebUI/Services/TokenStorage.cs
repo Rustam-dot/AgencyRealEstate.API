@@ -4,6 +4,9 @@ public class TokenStorage
 {
     private readonly IHttpContextAccessor _httpContextAccessor;
 
+    
+    private string? _inMemoryToken;
+
     public TokenStorage(IHttpContextAccessor httpContextAccessor)
     {
         _httpContextAccessor = httpContextAccessor;
@@ -11,12 +14,27 @@ public class TokenStorage
 
     public string? Token
     {
-        get => _httpContextAccessor.HttpContext?.Request.Cookies["authToken"];
-        set => _ = value; // кука устанавливается через JS в Login.razor
+        get
+        {
+           
+            if (!string.IsNullOrWhiteSpace(_inMemoryToken))
+            {
+                return _inMemoryToken;
+            }
+
+           
+            return _httpContextAccessor.HttpContext?.Request.Cookies["authToken"];
+        }
+        set
+        {
+            
+            _inMemoryToken = value;
+        }
     }
 
     public void Clear()
     {
-        // кука удаляется через JS в Logout.razor
+      
+        _inMemoryToken = null;
     }
 }

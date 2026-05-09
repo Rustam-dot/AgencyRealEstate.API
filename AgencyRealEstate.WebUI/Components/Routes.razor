@@ -6,31 +6,43 @@
         <Found Context="routeData">
             <AuthorizeRouteView RouteData="@routeData" DefaultLayout="@typeof(MainLayout)">
                 <NotAuthorized>
-                    @if (NavigationManager.Uri != $"{NavigationManager.BaseUri}login")
-                    {
-                        <div class="page-wrapper">
-                            <div class="alert alert-warning m-4" style="border-radius: 20px; background: #2d2d2d; color: white; border: 1px solid #444;">
-                                <p>Вы должны авторизоваться для доступа к этой странице.</p>
-                                <a href="/login" class="card-btn-pill" style="display: inline-block; width: auto; padding: 10px 30px;">Войти</a>
+                    @{
+                        var currentUri = NavigationManager.Uri.ToLower();
+                        var baseUri = NavigationManager.BaseUri.ToLower();
+                       
+                        var relativePath = currentUri.Replace(baseUri, "").Trim('/');
+
+                        if (context.User.Identity?.IsAuthenticated == true)
+                        {
+                            <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
+                                <h2>Доступ ограничен</h2>
+                                <a href="/">Вернуться домой</a>
                             </div>
-                        </div>
-                    }
-                    else
-                    {
-                        <PageTitle>Вход</PageTitle>
-                        <Login />
+                        }
+                        else if (relativePath != "login") 
+                        {
+                            NavigationManager.NavigateTo("login");
+                        }
                     }
                 </NotAuthorized>
             </AuthorizeRouteView>
             <FocusOnNavigate RouteData="@routeData" Selector="h1" />
         </Found>
         <NotFound>
-            <PageTitle>Страница не найдена</PageTitle>
             <LayoutView Layout="@typeof(MainLayout)">
-                <div class="page-wrapper">
-                    <p role="alert" style="color: white;">Извините, такой страницы нет.</p>
+                <div class="page-wrapper" style="background: #121212; padding: 100px; color: white;">
+                    <p role="alert">Извините, такой страницы нет.</p>
                 </div>
             </LayoutView>
         </NotFound>
     </Router>
 </CascadingAuthenticationState>
+
+@code {
+   
+    private class RedirectToLogin : ComponentBase
+    {
+        [Inject] protected NavigationManager Nav { get; set; } = default!;
+        protected override void OnInitialized() => Nav.NavigateTo("login");
+    }
+}

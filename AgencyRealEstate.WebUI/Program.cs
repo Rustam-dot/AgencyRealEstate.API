@@ -3,23 +3,24 @@ using AgencyRealEstate.WebUI.Components;
 using AgencyRealEstate.WebUI.Services;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Components.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using MudBlazor.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- MudBlazor ---
+
 builder.Services.AddMudServices();
 
-// --- HTTP-контекст для чтения куки ---
+
 builder.Services.AddHttpContextAccessor();
 
-// --- Хранилище токена (простая кука) ---
+
 builder.Services.AddScoped<TokenStorage>();
 
-// --- Обработчик, добавляющий JWT в заголовки запросов ---
+
 builder.Services.AddScoped<AuthMessageHandler>();
 
-// --- Единый HttpClient с поддержкой аутентификации ---
+
 builder.Services.AddScoped(sp =>
 {
     var tokenStorage = sp.GetRequiredService<TokenStorage>();
@@ -34,14 +35,27 @@ builder.Services.AddScoped(sp =>
     return client;
 });
 
-// --- API-клиент для удобства вызовов ---
+
 builder.Services.AddScoped<ApiClient>();
 
-// --- Провайдер состояния аутентификации (читает куку) ---
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("BlazorPolicy", policy =>
+    {
+        policy.WithOrigins("https://localhost:7075") // Порт вашего Blazor приложения
+              .AllowAnyMethod()
+              .AllowAnyHeader()
+              .AllowCredentials(); // РАЗРЕШАЕТ ПЕРЕДАЧУ КУК/АВТОРИЗАЦИИ
+    });
+});
+
 builder.Services.AddScoped<AuthenticationStateProvider, TokenAuthenticationStateProvider>();
 builder.Services.AddAuthorizationCore();
 
-// --- Фиктивная схема, чтобы работал [Authorize] ---
+builder.Services.Configure<HubOptions>(options =>
+{
+    options.MaximumReceiveMessageSize = 20 * 1024 * 1024; // 10 МБ
+});
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultScheme = "Custom";
@@ -49,7 +63,7 @@ builder.Services.AddAuthentication(options =>
 })
 .AddScheme<AuthenticationSchemeOptions, CustomAuthenticationHandler>("Custom", null);
 
-// --- Blazor + MudBlazor ---
+
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
@@ -64,6 +78,10 @@ if (!app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseAntiforgery();
+
+// CORS должен быть ДО аутентификации/авторизации
+app.UseCors("BlazorPolicy");
+
 app.UseAuthentication();
 app.UseAuthorization();
 

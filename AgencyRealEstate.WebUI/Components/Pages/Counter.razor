@@ -1,19 +1,320 @@
 ﻿@page "/counter"
 @rendermode InteractiveServer
 
-<PageTitle>Counter</PageTitle>
+<PageTitle>Счетчик</PageTitle>
 
-<h1>Counter</h1>
+<div class="counter-page">
+    <div class="bg-gradient"></div>
+    
+    <div class="container">
+        <div class="counter-card animate-fade-up">
+            <div class="counter-header">
+                <div class="icon-wrapper">
+                    <i class="fas fa-plus-circle"></i>
+                </div>
+                <h1 class="page-title">Счет<span class="purple-text">чик</span></h1>
+                <p class="page-subtitle">Демонстрация интерактивности Blazor</p>
+            </div>
+            
+            <div class="counter-display">
+                <div class="count-value">@currentCount</div>
+                <div class="count-label">Текущее значение</div>
+            </div>
+            
+            <div class="counter-controls">
+                <button class="btn-counter" @onclick="IncrementCount">
+                    <i class="fas fa-plus"></i>
+                    <span>Увеличить</span>
+                </button>
+                <button class="btn-counter reset" @onclick="ResetCount">
+                    <i class="fas fa-redo"></i>
+                    <span>Сбросить</span>
+                </button>
+            </div>
+            
+            <div class="counter-stats">
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">@totalClicks</div>
+                        <div class="stat-label">Всего кликов</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value">@maxCount</div>
+                        <div class="stat-label">Максимум</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
 
-<p role="status">Current count: @currentCount</p>
+<style>
+    :root {
+        --primary: #8b5cf6;
+        --primary-dark: #7c3aed;
+        --primary-light: #a78bfa;
+        --primary-bg: rgba(139, 92, 246, 0.1);
+        --bg-page: #0f0a1f;
+        --bg-card: rgba(30, 20, 50, 0.8);
+        --text: #ffffff;
+        --text-muted: #a78bfa;
+        --border: rgba(139, 92, 246, 0.3);
+        --shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+    }
 
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+    .counter-page {
+        min-height: 100vh;
+        background: var(--bg-page);
+        padding: 100px 20px 40px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bg-gradient {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(124, 58, 237, 0.15) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .container {
+        max-width: 800px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+    }
+
+    .counter-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 32px;
+        padding: 48px;
+        box-shadow: var(--shadow);
+        text-align: center;
+    }
+
+    .counter-header {
+        margin-bottom: 40px;
+    }
+
+    .icon-wrapper {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        color: white;
+        font-size: 2.5rem;
+        box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 8px;
+        color: var(--text);
+    }
+
+    .purple-text {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .page-subtitle {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .counter-display {
+        background: rgba(139, 92, 246, 0.1);
+        border: 2px solid var(--border);
+        border-radius: 24px;
+        padding: 48px;
+        margin-bottom: 32px;
+    }
+
+    .count-value {
+        font-size: 6rem;
+        font-weight: 800;
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1;
+        margin-bottom: 12px;
+        transition: all 0.3s;
+    }
+
+    .count-value:hover {
+        transform: scale(1.05);
+    }
+
+    .count-label {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .counter-controls {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        margin-bottom: 40px;
+    }
+
+    .btn-counter {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 16px 32px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        color: white;
+        border: none;
+        border-radius: 16px;
+        font-size: 1.1rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all 0.3s;
+        box-shadow: 0 4px 16px rgba(139, 92, 246, 0.3);
+    }
+
+    .btn-counter:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 24px rgba(139, 92, 246, 0.5);
+    }
+
+    .btn-counter:active {
+        transform: translateY(-1px);
+    }
+
+    .btn-counter.reset {
+        background: rgba(255, 255, 255, 0.1);
+        border: 2px solid var(--border);
+    }
+
+    .btn-counter.reset:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+
+    .counter-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+        padding-top: 32px;
+        border-top: 1px solid var(--border);
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: 16px;
+        padding: 20px;
+        background: rgba(139, 92, 246, 0.05);
+        border-radius: 16px;
+    }
+
+    .stat-icon {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.3rem;
+    }
+
+    .stat-content {
+        text-align: left;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+    }
+
+    .stat-label {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-top: 4px;
+    }
+
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-up {
+        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @@media (max-width: 768px) {
+        .counter-card {
+            padding: 32px 24px;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+        }
+
+        .count-value {
+            font-size: 4rem;
+        }
+
+        .counter-controls {
+            flex-direction: column;
+        }
+
+        .btn-counter {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .counter-stats {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 
 @code {
     private int currentCount = 0;
+    private int totalClicks = 0;
+    private int maxCount = 0;
 
     private void IncrementCount()
     {
         currentCount++;
+        totalClicks++;
+        if (currentCount > maxCount)
+        {
+            maxCount = currentCount;
+        }
+    }
+
+    private void ResetCount()
+    {
+        currentCount = 0;
     }
 }
