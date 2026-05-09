@@ -8,39 +8,88 @@
 @attribute [Authorize]
 
 <div class="main-wrapper">
-    <!-- Hero Section -->
-    <section class="hero-section">
-        <div class="container hero-content">
-            <AuthorizeView>
-                <Authorized>
-                    <div class="hero-greeting fade-in-up">
-                        <i class="fas fa-hand-wave"></i>
-                        <span>Добро пожаловать, <strong>@context.User.Identity?.Name</strong>!</span>
-                    </div>
-                </Authorized>
-            </AuthorizeView>
+    <!-- Hero Section with 3D Planet -->
+    <section class="hero-section-planet">
+        <div class="container hero-content-planet">
+            <div class="hero-text-content fade-in-up">
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="hero-greeting">
+                            <i class="fas fa-hand-wave"></i>
+                            <span>Добро пожаловать, <strong>@context.User.Identity?.Name</strong>!</span>
+                        </div>
+                    </Authorized>
+                </AuthorizeView>
 
-            <h1 class="hero-title fade-in-up delay-1">
-                Найдите свой <span class="text-gradient">дом мечты</span>
-            </h1>
-            
-            <p class="hero-subtitle fade-in-up delay-2">
-                Современная платформа для поиска и продажи недвижимости премиум-класса
-            </p>
-            
-            <div class="search-container fade-in-up delay-3">
-                <div class="search-box">
-                    <div class="search-input-group">
-                        <i class="fas fa-search search-icon"></i>
-                        <input type="text" 
-                               placeholder="Поиск по городу, району или адресу..." 
-                               @bind="searchQuery" 
-                               @onkeydown="OnKeyDown" />
+                <h1 class="hero-title fade-in-up delay-1">
+                    Вселенная <span class="text-gradient">Недвижимости</span>
+                </h1>
+                
+                <p class="hero-subtitle fade-in-up delay-2">
+                    Найдите свой идеальный дом среди звезд качества и комфорта
+                </p>
+                
+                <div class="search-container fade-in-up delay-3">
+                    <div class="search-box glass-card">
+                        <div class="search-input-group">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   placeholder="Поиск по городу, району или адресу..." 
+                                   @bind="searchQuery" 
+                                   @onkeydown="OnKeyDown" />
+                        </div>
+                        <button class="btn btn-primary btn-search" @onclick="Search">
+                            Найти
+                        </button>
                     </div>
-                    <button class="btn btn-primary btn-search" @onclick="Search">
-                        Найти
-                    </button>
                 </div>
+            </div>
+
+            <!-- 3D Planet System -->
+            <div class="planet-system-container fade-in-up delay-2">
+                <div class="planet-core" id="planetCore">
+                    <div class="planet-surface"></div>
+                    <div class="planet-atmosphere"></div>
+                    <div class="planet-glow"></div>
+                </div>
+                
+                <!-- Orbiting Properties -->
+                @if (popularProperties != null && popularProperties.Any())
+                {
+                    @for (int i = 0; i < Math.Min(popularProperties.Count, 6); i++)
+                    {
+                        var prop = popularProperties[i];
+                        <div class="orbit-ring" style="--orbit-index: @(i + 1); --rotation-speed: @(15 + i * 3)s; --start-angle: @(i * 60)deg;">
+                            <div class="orbit-item">
+                                <div class="orbit-property-card glass-card">
+                                    @if (prop.PhotoUrls != null && prop.PhotoUrls.Any())
+                                    {
+                                        <img src="@prop.PhotoUrls.First()" alt="@prop.Title" class="orbit-img" />
+                                    }
+                                    else
+                                    {
+                                        <div class="no-image">
+                                            <i class="fas fa-image"></i>
+                                        </div>
+                                    }
+                                    <div class="orbit-price">@prop.Price?.ToString("N0") ₽</div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                }
+                else
+                {
+                    <!-- Placeholder Orbits -->
+                    @for (int i = 0; i < 3; i++)
+                    {
+                        <div class="orbit-ring placeholder" style="--orbit-index: @(i + 1); --rotation-speed: @(20 + i * 5)s; --start-angle: @(i * 120)deg;">
+                            <div class="orbit-item">
+                                <div class="orbit-property-card glass-card skeleton-loading"></div>
+                            </div>
+                        </div>
+                    }
+                }
             </div>
         </div>
     </section>
@@ -97,8 +146,8 @@
         <div class="container">
             <div class="section-header">
                 <div class="section-title-wrapper">
-                    <h2 class="section-title">Избранные объекты</h2>
-                    <p class="section-subtitle">Лучшие предложения этого месяца</p>
+                    <h2 class="section-title">Популярные объекты</h2>
+                    <p class="section-subtitle">Лучшие предложения этой недели</p>
                 </div>
                 <a href="/properties" class="btn-link">
                     Все объекты
@@ -124,7 +173,7 @@
                 }
                 else
                 {
-                    @foreach (var prop in popularProperties.Take(3))
+                    @foreach (var prop in popularProperties.Take(6))
                     {
                         <div class="property-card glass-card animate-on-scroll">
                             <div class="card-image">
@@ -193,7 +242,8 @@
         try
         {
             allProperties = await ApiClient.GetPropertiesAsync();
-            popularProperties = allProperties?.Take(3).ToList() ?? new(); 
+            // Берем больше объектов для орбиты и списка
+            popularProperties = allProperties?.Take(12).ToList() ?? new(); 
         }
         catch
         {
