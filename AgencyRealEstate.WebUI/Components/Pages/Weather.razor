@@ -1,47 +1,273 @@
 ﻿@page "/weather"
 @attribute [StreamRendering]
 
-<PageTitle>Weather</PageTitle>
+<PageTitle>Погода</PageTitle>
 
-<h1>Weather</h1>
+<div class="weather-page">
+    <div class="bg-gradient"></div>
+    
+    <div class="container">
+        <div class="weather-card animate-fade-up">
+            <div class="weather-header">
+                <div class="icon-wrapper">
+                    <i class="fas fa-cloud-sun"></i>
+                </div>
+                <h1 class="page-title">Прогноз <span class="purple-text">погоды</span></h1>
+                <p class="page-subtitle">Актуальная информация на ближайшие дни</p>
+            </div>
 
-<p>This component demonstrates showing data.</p>
-
-@if (forecasts == null)
-{
-    <p><em>Loading...</em></p>
-}
-else
-{
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
+            @if (forecasts == null)
             {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
+                <div class="loading-state">
+                    <div class="premium-spinner"></div>
+                    <p>Загрузка данных о погоде...</p>
+                </div>
             }
-        </tbody>
-    </table>
-}
+            else
+            {
+                <div class="forecast-grid">
+                    @foreach (var forecast in forecasts)
+                    {
+                        <div class="forecast-item">
+                            <div class="forecast-date">
+                                <span class="day-name">@forecast.Date.ToString("dddd")</span>
+                                <span class="day-date">@forecast.Date.ToString("dd MMM")</span>
+                            </div>
+                            <div class="forecast-icon">
+                                @GetWeatherIcon(forecast.Summary)
+                            </div>
+                            <div class="forecast-temp">
+                                <span class="temp-c">@forecast.TemperatureC°C</span>
+                                <span class="temp-f">@forecast.TemperatureF°F</span>
+                            </div>
+                            <div class="forecast-summary">@forecast.Summary</div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    :root {
+        --primary: #8b5cf6;
+        --primary-dark: #7c3aed;
+        --primary-light: #a78bfa;
+        --primary-bg: rgba(139, 92, 246, 0.1);
+        --bg-page: #0f0a1f;
+        --bg-card: rgba(30, 20, 50, 0.8);
+        --text: #ffffff;
+        --text-muted: #a78bfa;
+        --border: rgba(139, 92, 246, 0.3);
+        --shadow: 0 8px 32px rgba(139, 92, 246, 0.2);
+    }
+
+    .weather-page {
+        min-height: 100vh;
+        background: var(--bg-page);
+        padding: 100px 20px 40px;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .bg-gradient {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: 
+            radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.15) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, rgba(124, 58, 237, 0.15) 0%, transparent 50%);
+        pointer-events: none;
+        z-index: 0;
+    }
+
+    .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+    }
+
+    .weather-card {
+        background: var(--bg-card);
+        backdrop-filter: blur(20px);
+        border: 1px solid var(--border);
+        border-radius: 32px;
+        padding: 48px;
+        box-shadow: var(--shadow);
+    }
+
+    .weather-header {
+        text-align: center;
+        margin-bottom: 48px;
+    }
+
+    .icon-wrapper {
+        width: 100px;
+        height: 100px;
+        background: linear-gradient(135deg, #fbbf24, #f59e0b);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 24px;
+        color: white;
+        font-size: 3rem;
+        box-shadow: 0 8px 24px rgba(251, 191, 36, 0.4);
+    }
+
+    .page-title {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: 0 0 8px;
+        color: var(--text);
+    }
+
+    .purple-text {
+        background: linear-gradient(135deg, var(--primary), var(--primary-light));
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .page-subtitle {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+        margin: 0;
+    }
+
+    .loading-state {
+        text-align: center;
+        padding: 60px 20px;
+    }
+
+    .premium-spinner {
+        width: 60px;
+        height: 60px;
+        border: 4px solid var(--primary-bg);
+        border-top-color: var(--primary);
+        border-radius: 50%;
+        animation: spin 1s infinite linear;
+        margin: 0 auto 20px;
+    }
+
+    .loading-state p {
+        color: var(--text-muted);
+        font-size: 1.1rem;
+    }
+
+    .forecast-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 20px;
+    }
+
+    .forecast-item {
+        background: rgba(139, 92, 246, 0.05);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 24px;
+        text-align: center;
+        transition: all 0.3s;
+    }
+
+    .forecast-item:hover {
+        background: rgba(139, 92, 246, 0.1);
+        transform: translateY(-5px);
+        box-shadow: 0 12px 32px rgba(139, 92, 246, 0.2);
+    }
+
+    .forecast-date {
+        margin-bottom: 16px;
+    }
+
+    .day-name {
+        display: block;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--text);
+        margin-bottom: 4px;
+    }
+
+    .day-date {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        text-transform: capitalize;
+    }
+
+    .forecast-icon {
+        font-size: 3rem;
+        margin-bottom: 16px;
+        color: #fbbf24;
+    }
+
+    .forecast-temp {
+        margin-bottom: 12px;
+    }
+
+    .temp-c {
+        display: block;
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--text);
+        line-height: 1;
+    }
+
+    .temp-f {
+        display: block;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-top: 4px;
+    }
+
+    .forecast-summary {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    @@keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    @@keyframes fadeUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-fade-up {
+        animation: fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    @@media (max-width: 768px) {
+        .weather-card {
+            padding: 32px 24px;
+        }
+
+        .page-title {
+            font-size: 1.8rem;
+        }
+
+        .forecast-grid {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        .icon-wrapper {
+            width: 80px;
+            height: 80px;
+            font-size: 2.5rem;
+        }
+    }
+</style>
 
 @code {
     private WeatherForecast[]? forecasts;
 
     protected override async Task OnInitializedAsync()
     {
-        // Simulate asynchronous loading to demonstrate streaming rendering
         await Task.Delay(500);
 
         var startDate = DateOnly.FromDateTime(DateTime.Now);
@@ -52,6 +278,20 @@ else
             TemperatureC = Random.Shared.Next(-20, 55),
             Summary = summaries[Random.Shared.Next(summaries.Length)]
         }).ToArray();
+    }
+
+    private Microsoft.AspNetCore.Components.RenderFragment GetWeatherIcon(string? summary)
+    {
+        var icon = summary?.ToLower() switch
+        {
+            "freezing" or "bracing" => "<i class=\"fas fa-snowflake\"></i>",
+            "chilly" or "cool" => "<i class=\"fas fa-cloud\"></i>",
+            "mild" or "balmy" => "<i class=\"fas fa-cloud-sun\"></i>",
+            "warm" or "hot" => "<i class=\"fas fa-sun\"></i>",
+            "sweltering" or "scorching" => "<i class=\"fas fa-fire\"></i>",
+            _ => "<i class=\"fas fa-cloud\"></i>"
+        };
+        return (Microsoft.AspNetCore.Components.RenderFragment)(builder => builder.AddMarkupContent(0, icon));
     }
 
     private class WeatherForecast
